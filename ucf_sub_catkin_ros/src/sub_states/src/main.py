@@ -62,8 +62,9 @@ class StopState(smach.State):
 
     def execute(self, userdata):
         self.waiting = True
-        self.stabilityMsg.target.z=0.5
+        self.stabilityMsg.target.z=1
         self.stabilityMsg.mode = StabilityMode.position
+	self.stabilityMsg.yawEnabled = True
         self.stabilityPub.publish(self.stabilityMsg)
 
         while self.waiting and not self.preempt_requested():
@@ -105,10 +106,10 @@ class SafetyState(smach.State):
                 thrusterErrors += 1
         if thrusterErrors > 7:
             self.estop = True
-            rospy.logwarn("ESTOP PROBABLY ON")
+            rospy.logwarn_throttle(1, "ESTOP PROBABLY ON")
         elif thrusterErrors > 1:
-            rospy.logwarn("THRUSTERS PROBABLY BUSTED")
-            self.critError = True
+            rospy.logwarn_throttle(1,"THRUSTERS PROBABLY BUSTED")
+            self.estop = True
 
     def execute(self, userdata):
         self.button=False
@@ -129,7 +130,6 @@ class SafetyState(smach.State):
 
 def safetyWrap(task):
     def safety_outcome(outcome_map):
-        rospy.logerr(outcome_map)
         if outcome_map['SAFETY'] not in ['PREEMPTED']:
             return outcome_map['SAFETY']
         elif outcome_map['TASK'] is not None:

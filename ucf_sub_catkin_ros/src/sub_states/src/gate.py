@@ -13,7 +13,7 @@ class through(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
 		self.stabilityPub = rospy.Publisher("/thrusters/depthMode", StabilityMode, queue_size=1)
-		self.orientationPub = rospy.Publisher("/thrusters/orientationMode", StabilityMode, queue_size=1)
+		self.orientationPub = rospy.Publisher("/thrusters/angleMode", StabilityMode, queue_size=1)
 		self.thruster_pub = rospy.Publisher('/autonomyWrench', WrenchStamped, queue_size=1)
 
 	def execute(self, userdata):
@@ -21,25 +21,27 @@ class through(smach.State):
 		self.stabilityMsg = StabilityMode()
 		self.orientationMsg = StabilityMode()
 
-		self.stabilityMsg.target.z=1
+		self.stabilityMsg.target.z=2
 		self.stabilityMsg.mode = StabilityMode.position
 		self.stabilityPub.publish(self.stabilityMsg)
 
 		self.orientationMsg.target.w=float("nan")
 		self.orientationMsg.mode = StabilityMode.position
 		self.orientationMsg.yawEnabled = True
-		self.orientationPub.publish(self.stabilityMsg)
+		self.orientationPub.publish(self.orientationMsg)
 		
 		self.autonomyMsg = WrenchStamped()
 
-		self.autonomyMsg.wrench.force.x = 3
+		self.autonomyMsg.wrench.force.x = 2
 		self.thruster_pub.publish(self.autonomyMsg)
 
 		t0 = time.time()
 
-		while ((time.time()-t0) < 10) and not self.preempt_requested():
+		while ((time.time()-t0) < 60) and not self.preempt_requested():
 			time.sleep(0.01)
+			self.autonomyMsg.header.stamp = rospy.Time.now()
 			self.thruster_pub.publish(self.autonomyMsg)
+
 		self.autonomyMsg.wrench.force.x = 0.0
 		self.thruster_pub.publish(self.autonomyMsg)
 
