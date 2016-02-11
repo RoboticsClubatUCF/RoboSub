@@ -24,7 +24,7 @@ class ThrusterControl:
 		self.angleMode = modes.off
 		self.yawEnabled = False
 		self.stabilityMode = StabilityMode()
-		self.autonomyEnabled = -1
+		self.autonomyEnabled = 1
 
 		self.trans_sub = rospy.Subscriber("/translate/joy", Joy, self.translateCb)
 		self.rot_sub = rospy.Subscriber("/rotate/joy", Joy, self.rotateCb)
@@ -102,12 +102,14 @@ class ThrusterControl:
 
 	def republishWrench(self, msg):
 		if self.autonomyEnabled > 0:
+			msg.header.frame_id='base_link'
 			msg.wrench.force.x = msg.wrench.force.x + self.stabilityMsg.wrench.force.x
 			msg.wrench.force.y = msg.wrench.force.y + self.stabilityMsg.wrench.force.y
 			msg.wrench.force.z = msg.wrench.force.z + self.stabilityMsg.wrench.force.z
 			msg.wrench.torque.x = msg.wrench.torque.x + self.stabilityMsg.wrench.torque.x
 			msg.wrench.torque.y = msg.wrench.torque.y + self.stabilityMsg.wrench.torque.y
 			msg.wrench.torque.z = msg.wrench.torque.z + self.stabilityMsg.wrench.torque.z
+			msg.header.stamp=rospy.Time.now()
 			self.twist_pub.publish(msg)
 
 	def stabilityWrench(self, msg):
