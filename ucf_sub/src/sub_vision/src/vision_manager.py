@@ -35,13 +35,18 @@ class VisionServer:
         self.leftImage = None
         self.leftModel = None
         self.leftMsg = None
+        self.rightSub = rospy.Subscriber('/right_camera/image_raw', Image, self.rightCallback)
         self.rightInfoSub = rospy.Subscriber('/right_camera/info', CameraInfo, self.rightInfoCallback)
+        self.rightImage = None
+        self.rightModel = None
         self.rightMsg = None
+
         self.targetType = TrackObjectGoal.navbar
         self.thresholds = self.loadThresholds()
         
         self.navBarFinder = navbarfinder.NavbarFinder()
         self.bouyFinder = bouyfinder.BuoyFinder()
+        self.gatefinder = gatefinder.GateFinder()
         self.feedback = TrackObjectFeedback()
         self.response = TrackObjectResult()
         
@@ -62,10 +67,12 @@ class VisionServer:
                 self.running = False
                 continue
             
-            
             if self.targetType == TrackObjectGoal.navbar:
                 #Process navbar stuff
                 self.feedback = self.navBarFinder.process(self.downImage, self.downModel)
+                self.server.publish_feedback(self.feedback)
+            elif self.targetType == TrackObjectGoal.startGate:
+                self.feedback = self.gatefinder.process(self.leftImage, self.rightImage, self.disparityImage, self.leftModel, self.stereoModel)
                 self.server.publish_feedback(self.feedback)
 #TODO: Fix color thresholds
             elif self.targetType == TrackObjectGoal.redBouy:
@@ -119,13 +126,27 @@ class VisionServer:
 
         self.leftModel.rectifyImage(self.leftImage, self.leftImage)
     
+    def rightCallback(self, msg):
+        try:
+            self.rightImage = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        except CvBridgeError as e:
+            print(e)
+
+        if self.rightModel is None:
+            print("No camera model for right camera")
+            return
+        
+        self.rightModel.rectifyImage(self.rightImage, self.rightImage)
+
     def downInfoCallback(self, msg):
         self.downModel = image_geometry.PinholeCameraModel()
         self.downModel.fromCameraInfo(msg)
 
     def rightInfoCallback(self, msg):
         self.rightMsg = msg
-        
+        self.rightModel = image_geometry.PinholeCameraModel()
+        self.rightModel.fromCameraInfo(msg)
+
     def leftInfoCallback(self, msg):
         self.leftMsg = msg
         self.leftModel = image_geometry.PinholeCameraModel()
