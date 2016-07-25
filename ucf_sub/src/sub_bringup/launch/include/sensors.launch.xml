@@ -1,0 +1,6 @@
+<launch>
+  <!--Cameras -->
+  <include file="$(find sub_bringup)/launch/include/sensors/stereo_cameras.launch.xml" />
+  <include file="$(find sub_bringup)/launch/include/sensors/bottom_camera.launch.xml" />
+
+</launch>

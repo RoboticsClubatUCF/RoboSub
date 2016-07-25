@@ -1,0 +1,3 @@
+<launch>
+  <node name="sub_states" pkg="sub_states" type="main.py" />
+</launch>

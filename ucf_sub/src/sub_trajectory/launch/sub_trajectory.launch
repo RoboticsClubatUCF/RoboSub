@@ -1,0 +1,4 @@
+<launch>
+  <node name="trajectory_planner" pkg="sub_trajectory" type="trajectory_planner.py" />
+  <node name="thruster_control_server" pkg="sub_trajectory" type="thruster_control_server.py" />
+</launch>

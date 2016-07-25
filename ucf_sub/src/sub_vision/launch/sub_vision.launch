@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="sub_vision" type="vision_manager.py" name="vision_manager_node">
+
+  </node>
+</launch>
