@@ -13,9 +13,9 @@ import trajectory_planner
 import monitor
 
 import gate
-import pathToBouy
+import gateToBouy
 import buoy
-import pathToChannel
+import bouyToChannel
 import channel
 import goHome
 
