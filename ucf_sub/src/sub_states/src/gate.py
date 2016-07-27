@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+import rospy
+import tf
+import actionlib
+import actionlib_msgs.msg
+import vision_manager.msg
+import trajectory_planner.msg
+from geometry_msgs.msg import Pose
 
 class locate(smach.State):
 	"""
@@ -10,27 +17,68 @@ class locate(smach.State):
 
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
-		attempts = 5
-
+                self.vision_client = actionlib.SimpleActionClient('track_object')
+                self.vision_client.wait_for_server()
+                self.movement_client = actionlib.SimpleActionClient('movement_server')
+                self.movement_client.wait_for_server()
+                self.listener = tf.TransformListener()
+                self.rel_pose = None
 	def execute(self, userdata):
 		rospy.loginfo("Locating the gate.")
-
+                start = rospy.Time(0)
 		# found = Call vision to see if gate is in view of front camereas.
-		
-		if found:
+                goal = vision_manager.msg.TrackObjectGoal()
+                goal.objectType = goal.startGate
+		while self.rel_pose == None:
+                        self.vision_client.send_goal(goal, feedback_cb = feedback_cb)
+                        if self.rel_pose != None:
+                                found = true
+                                break
+                        if rospy.Time(0) - start == 90:
+                                found = false
+                                break
+                        move_goal = trajectory_planner.msg.GoToPoseGoal()
+                        t = self.listener.getLatestCommonTime('/base_link','/map')
+                        position, rotation = self.listener.lookupTransform('/base_link','/map', t)
+                        move_goal.startPose.position.x = position.x
+                        move_goal.startPose.position.y = position.y
+                        move_goal.startPose.position.z = position.z
+                        move_goal.startPose.orientation.w = rotation.w
+                        move_goal.startPose.orientation.x = rotation.x
+                        move_goal.startPose.orientation.y = rotation.y
+                        move_goal.startPose.orientation.z = rotation.z
+                        quaternion = tf.transformations.quaternion_from_euler(0, 0, 90)
+                        move_goal.targetPose.position.x = position.x
+                        move_goal.targetPose.position.y = position.y
+                        move_goal.targetPose.position.z = position.z
+                        move_goal.targetPose.orientation.x = quaternion[0]
+                        move_goal.targetPose.orientation.y = quaternion[1]
+                        move_goal.targetPose.orientation.z = quaternion[2]
+                        move_goal.targetPose.orientation.w = quaternion[3]
+                        self.movement_client.send_goal(move_goal)
+                if found:
 			rospy.loginfo("Gate located.")
 			return 'success'
 		if not found:
-			rospy.loginfo("Gate not located. Attempting to locate.")
-			for num in range(0, attempts):
-				rospy.loginfo("Location attempt {}.".format(num))
-				if self.found:
-					rospy.loginfo("Gate located on attempt {}.".format(num))
-					return 'success'
-				if self.preemption():
-					return 'preempted'
 			return 'failure'
 
+                        
+        def feedback_cb(self,feedback):
+                if feedback is not None:
+                        try:
+                                (trans,rot) = self.listener.lookupTransform('/camera_frame','/base_link', rospy.Time(0)) #TODO: fix frame names
+                        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                                continue
+                                if feedback.fixType == feedback.pose or feedback.fixType == feedback.position:
+                                        self.rel_pose.translation.x = feedback.targetPose.translation.x - trans.x
+                                        self.rel_pose.translation.y = feedback.targetPose.translation.y - trans.y
+                                        self.rel_pose.translation.z = feedback.targetPose.translation.z - trans.z
+                                if feedback.fixType == feedback.pose or feedback.fixType == feedback.direction:
+                                        self.rel_pose.rotation.w = feedback.targetPose.rotation.w
+                                        self.rel_pose.rotation.x = feedback.targetPose.rotation.x
+                                        self.rel_pose.rotation.y = feedback.targetPose.rotation.y
+                                        self.rel_pose.rotation.z = feedback.targetPose.rotation.z
+                
 class align(smach.State):
 	"""
 	Aligns the submarine with the gate so that passing through is (hopefully) a straight shot.

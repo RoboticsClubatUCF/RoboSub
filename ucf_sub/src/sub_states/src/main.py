@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 import rospy
@@ -10,7 +11,11 @@ import actionlib_msgs.msg
 import vision_manager
 import trajectory_planner
 
+import vision_manager.msg
+import trajectory_planner.msg
+
 import monitor
+
 
 import gate
 import gateToBouy
@@ -81,8 +86,8 @@ class SubStates:
                         gate = smach.StateMachine(outcomes=['preempted', 'succeess', 'failure'])
                         
                         with gate:
-                        
-                                smach.StateMachine.add('LOCATE', locate(),
+                
+                                smach.StateMachine.add('LOCATE', locate(), 
                                                        transitions={'preempted':'preempted', 
                                                                     'success': 'ALIGN',
                                                                     'failure': 'locate'})
