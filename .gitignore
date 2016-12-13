@@ -20,3 +20,6 @@ CMakeLists.txt.user
 
 # Empty file marking catkin workspace location
 .catkin_workspace
+
+# .pyc files
+*.pyc
