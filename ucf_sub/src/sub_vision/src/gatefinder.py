@@ -26,7 +26,7 @@ class GateFinder:
         normals = []
         for combo in combos: #Find all possible cross products of the available points
             if combo[0] != combo[1] and combo[1] != combo[2] and combo[0] != combo[2]:
-                new = np.cross(corners[combo[1]] - corners[combo[0], corners[combo[2]] - corners[combo[0]))
+                new = np.cross(corners[combo[1]] - corners[combo[0]], corners[combo[2]] - corners[combo[0]])
                 if new.max() > 0:
                     new = np.divide(new, new.max()) #normalize
                     
@@ -40,7 +40,7 @@ class GateFinder:
     def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel):
     
         imageHSV = cv2.cvtColor(imageLeftRect, cv2.COLOR_BGR2HSV)
-        contours, _ = ThreshAndContour(imageHSV, Thresholds(upper=(40,52,120), lower=(20, 30, 80))
+        contours, _ = ThreshAndContour(imageHSV, Thresholds(upper=(40,52,120), lower=(20, 30, 80)))
         
         if len(contours) == 0:
             return None

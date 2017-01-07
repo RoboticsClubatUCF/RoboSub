@@ -13,7 +13,7 @@ class NavbarFinder:
         
     def process(self, imageDown, downCameraModel):
         imageHSV = cv2.cvtColor(imageLeftRect, cv2.COLOR_BGR2HSV)
-        contours, _ = ThreshAndContour(imageHSV, Thresholds(upper=(40,52,120), lower=(20, 30, 80))
+        contours, _ = ThreshAndContour(imageHSV, Thresholds(upper=(40,52,120), lower=(20, 30, 80)))
         
         if len(contours) == 0:
             return None

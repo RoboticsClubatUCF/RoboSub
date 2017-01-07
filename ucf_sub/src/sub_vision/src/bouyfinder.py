@@ -10,7 +10,7 @@ class BuoyFinder:
     def __init__(self):
         pass
         
-    def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModelLeft, cameraModelStereo, thresholds=Thresholds(upper=(40,52,120), lower=(20, 30, 80))):
+    def process(self, imageLeftRect, imageDisparityRect, cameraModelLeft, cameraModelStereo, thresholds=vision_utils.Thresholds(upperThresh=(40,52,120), lowerThresh=(20, 30, 80))):
         
         self.cameraModel = cameraModelLeft
         self.cameraModelStereo = cameraModelStereo

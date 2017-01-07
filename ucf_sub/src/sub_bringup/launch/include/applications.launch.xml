@@ -1,0 +1,5 @@
+<launch>
+  <include file="$(find sub_vision)/launch/sub_vision.launch" />
+  <include file="$(find sub_trajectory)/launch/sub_trajectory.launch" />
+  <include file="$(find sub_states)/launch/sub_states.launch" />
+</launch>
