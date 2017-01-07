@@ -1,6 +1,8 @@
 #goal
+Header header
 geometry_msgs/Twist targetTwist
 geometry_msgs/Pose targetPose
+bool stationKeeping
 ---
 #result
 bool Ok

@@ -6,4 +6,3 @@ geometry_msgs/Pose targetPose
 bool Ok
 ---
 #feedback
-float32 distance

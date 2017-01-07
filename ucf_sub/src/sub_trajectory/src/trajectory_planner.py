@@ -11,7 +11,7 @@ from scipy.integrate import odeint
 import sub_trajectory.msg
 
 def rosToArray(msg):
-    return np.array([getattr(msg, key) for key in ["w", "x", "y", "z"] if hasattr(msg, key)]) #Comprehension (how ironic) for getting a vector from a message
+    return np.array([getattr(msg, key) for key in ["x", "y", "z", "w"] if hasattr(msg, key)]) #List comprehension (how ironic) for getting a vector from a message
 
 #def rosToQuat(msg):
 #    if hasattr(msg, "w") and hasattr(msg, "x") and hasattr(msg, "y") and hasattr(msg, "z"):
@@ -28,9 +28,9 @@ class MovementServer:
         rospy.loginfo("Movement server spooling up")
         self.server = actionlib.SimpleActionServer('move_vehicle', sub_trajectory.msg.GoToPoseAction, self.execute, False)
         
-        #self.ThrustControllerClient = actionlib.SimpleActionClient('thruster_waypoint', ExecuteWaypointAction)
+        self.ThrustControllerClient = actionlib.SimpleActionClient('thruster_waypoint', ExecuteWaypointAction)
         rospy.loginfo("Movement server waiting for thruster server")
-        #self.ThrustControllerClient.wait_for_server()
+        self.ThrustControllerClient.wait_for_server()
         
         self.server.start()
         
@@ -41,7 +41,7 @@ class MovementServer:
         self.vehicleMass = 32.0 #kilograms
         
         waterDensity = 1000 #kg/m^3 at 20C
-        vehicleArea = 0.1297 #Front cross-section (make this a vector?)
+        vehicleArea = np.array([0.1297, 0.2065, 0.2065]) #Front cross-section (make this a vector?)
         vehicleCd = 0.7 #S.W.A.G. TODO: make this a real number (also a vector? a function?)
         
         self.dragConstant = (waterDensity * vehicleArea * vehicleCd) / 2 #All the stuff that doesnt change in one number
@@ -95,7 +95,6 @@ class MovementServer:
         t2 = np.linspace(0, accelTime, 101) #shouldnt take longer to decelerate than it took to accelerate
 
         decelSol = odeint(motion_func, y0, t2, args=(-maxThrust, self.dragConstant, self.vehicleMass)) #Decelerate at max thrust
-
         decelIdx = 1 #Index to solution arrays for decelerating
 
         for idx, val in enumerate(decelSol[:, 1]): #Find deceleration time
@@ -109,7 +108,58 @@ class MovementServer:
         cruiseDist = distance - (accelDist+decelDist)
         cruiseTime = cruiseDist/accelVelocity
         
-        translateWaypoints = []
+        acceleratePositionTarget = self.startPosition + directionVector * accelDist
+        accelerateVelocityTarget = accelVelocity * directionVector
+        
+        cruisePositionTarget = acceleratePositionTarget + directionVector * max(cruiseDist, 0) #Make sure we dont try to cruise backwards
+        cruiseVelocityTarget = accelerateVelocityTarget #Cruise just tries to maintain our max velocity
+        
+        accelerate = sub_trajectory.msg.ExecuteWaypointGoal() #Waypoint action for the acceleration phase of the vehicle movement
+        accelerate.header.frame = "map" #Or some other world frame, no fucking idea at this time of night
+        accelerate.stationKeeping = False
+        accelerate.targetPose.position = geometry_msgs.msg.Point(*acceleratePositionTarget) 
+        accelerate.targetPose.orientation = geometry_msgs.msg.Quaternion(*self.startOrientation) #maintain current orientation so the math is easier
+        accelerate.targetTwist.linear = geometry_msgs.msg.Vector3(*accelerateVelocityTarget)
+        accelerate.targetTwist.angular = geometry_msgs.msg.Vector3(0,0,0) #Keep 0 orientation velocity
+        
+        cruise = sub_trajectory.msg.ExecuteWaypointGoal() #waypoint action for cruise phase of vehicle movement
+        cruise.header.frame = "map"
+        cruise.stationKeeping = False
+        cruise.targetPose.position = geometry_msgs.msg.Point(*cruisePositionTarget)
+        cruise.targetPose.orientation = geometry_msgs.msg.Quaternion(*self.startOrientation)
+        cruise.targetTwist.linear = geometry_msgs.msg.Vector3(*cruiseVelocityTarget)
+        cruise.targetTwist.angular = geometry_msgs.msg.Vector3(0,0,0)
+        
+        decelerate = sub_trajectory.msg.ExecuteWaypointGoal() #Waypoint for deceleration phase
+        decelerate.header.frame = "map"
+        decelerate.stationKeeping = False
+        decelerate.targetPose.position = geometry_msgs.msg.Point(*self.targetPosition)
+        decelerate.targetPose.orientation = geometry_msgs.msg.Quaternion(*self.startOrientation)
+        decelerate.targetTwist.linear = geometry_msgs.msg.Vector3(0,0,0)
+        decelerate.targetTwist.angular = geometry_msgs.msg.Vector3(0,0,0)
+        
+        rotate = sub_trajectory.msg.ExecuteWaypointGoal() #Waypoint for rotation phase
+        rotate.header.frame = "map"
+        rotate.stationKeeping = True
+        rotate.targetPose.position = geometry_msgs.msg.Point(*self.targetPosition)
+        rotate.targetPose.orientation = geometry_msgs.msg.Quaternion(*self.targetOrientation)
+        rotate.targetTwist.linear = geometry_msgs.msg.Vector3(0,0,0)
+        rotate.targetTwist.angular = geometry_msgs.msg.Vector3(0,0,0)
+        
+        waypoints = [accelerate, cruise, decelerate, rotate] #Put the 4 movement phases in a list
+        
+        #TODO: catch errors and abort as appropriate
+        #TODO: add feedback/error result stuff
+        for waypoint in waypoints: #Execute the 4 part movement plan
+            self.ThrusterControllerClient.send_goal(waypoint)
+            while self.ThrusterControllerClient.get_state() is in ["ACTIVE", "PENDING"]:
+                if self.server.is_preempt_requested():
+                    self.ThrusterControllerClient.cancel_all_goals()
+                    self.server.set_preempted(result=sub_trajectory.msg.GoToPoseResult(Ok=True))
+                    return
+                
+                
+        self.server.set_succeeded(result=sub_trajectory.msg.GoToPoseResult(Ok=True))
         
 if __name__ == '__main__':
     rospy.init_node('movement_server')
