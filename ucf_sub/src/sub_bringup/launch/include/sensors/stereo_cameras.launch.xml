@@ -1,8 +1,8 @@
 <launch>
    <!-- Determine this using rosrun pointgrey_camera_driver list_cameras.
        If not specified, defaults to first camera found. -->
-  <arg name="left_camera_serial" default="0" />
-  <arg name="right_camera_serial" default="0" />
+  <arg name="left_camera_serial" default="15435729" />
+  <arg name="right_camera_serial" default="15435605" />
   <arg name="calibrated" default="0" />
 
   <group ns="stereo/left">

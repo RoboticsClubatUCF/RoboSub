@@ -1,0 +1,17 @@
+[ 
+    {
+	"color":"red",
+	"high":{"hue":"20", "sat":"50", "val":"80"},
+	"low":{"hue":"20", "sat":"50", "val":"80"}
+    },
+    {
+	"color":"green",
+	"high":{"hue":"20", "sat":"50", "val":"80"},
+	"low":{"hue":"20", "sat":"50", "val":"80"}
+    },
+    {
+	"color":"yellow",
+	"high":{"hue":"20", "sat":"50", "val":"80"},
+	"low":{"hue":"20", "sat":"50", "val":"80"}
+    }
+]
