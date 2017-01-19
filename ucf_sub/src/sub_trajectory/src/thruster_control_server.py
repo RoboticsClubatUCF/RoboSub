@@ -11,11 +11,6 @@ import math
 import sub_trajectory.msg
 import geometry_msgs.msg
 import nav_msgs.msg
-
-def slerp(p0, p1, t):
-        omega = arccos(dot(p0/norm(p0), p1/norm(p1)))
-        so = sin(omega)
-        return sin((1.0-t)*omega) / so * p0 + sin(t*omega)/so * p1
         
 def rosToArray(msg):
     return np.array([getattr(msg, key) for key in ["x", "y", "z", "w"] if hasattr(msg, key)]) #List comprehension (how ironic) for getting a vector from a message

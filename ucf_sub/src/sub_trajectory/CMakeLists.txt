@@ -8,11 +8,12 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
 # find_package(Boost REQUIRED COMPONENTS system)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+ add_message_files(
+   DIRECTORY
+   msg
+   FILES
+   ThrusterStatus.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -36,7 +37,8 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
  generate_messages(
    DEPENDENCIES
    actionlib_msgs
-   geometry_msgs 
+   geometry_msgs
+   std_msgs 
  )
 
 catkin_package(

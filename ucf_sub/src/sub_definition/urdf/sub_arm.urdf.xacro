@@ -6,7 +6,7 @@
                 <geometry>
                     <box size="0.0381 0.0509 0.05"/>
                 </geometry>
-                <origin rpy="0 0 0" xyz="0.0191 -0.0255 0.025"/>
+                <origin rpy="0 0 0" xyz="-0.01905 -0.0254 -0.03"/>
             </visual>
         </link>
         <link name="${identifier}_arm_main">
@@ -25,9 +25,9 @@
 		<joint name="${identifier}_arm_pivot_joint" type="revolute">
 		    <parent link="${identifier}_arm_base"/>
 		    <child link="${identifier}_arm_main"/>
-		    <origin xyz="0.019 -0.0254 0.0631" rpy="0 0 0"/>
+		    <origin xyz="-0.0191 -0.0254 -0.076" rpy="0 0 0"/>
 		    <axis xyz="0 1 0"/>
-		    <limit lower="-1.57" upper="0.2" effort="2.8" velocity="20"/>
+		    <limit effort="2.8" lower="-1.57" upper="0.2" velocity="20"/>
 		</joint>
     </xacro:macro>
 </robot>

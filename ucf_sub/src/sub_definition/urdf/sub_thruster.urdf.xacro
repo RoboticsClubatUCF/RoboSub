@@ -26,6 +26,24 @@
                 </geometry>
                 <origin xyz="0 0 -0.0522" rpy="1.571 0 0"/>
             </visual>
+            <collision>
+                <geometry>
+                    <cylinder length="0.131" radius="0.02"/>
+                </geometry>
+                <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+            </collision>
+            <collision>
+                <geometry>
+                    <cylinder length="0.0445" radius="0.0458"/>
+                </geometry>
+                <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+            </collision>
+            <collision>
+                <geometry>
+                    <box size="0.0634 0.0128 0.0381"/>
+                </geometry>
+                <origin xyz="0 0 -0.0522" rpy="1.571 0 0"/>
+            </collision>
         </link>
         <joint name="${identifier}_thruster_joint" type="fixed">
 			<parent link="${parent}"/>

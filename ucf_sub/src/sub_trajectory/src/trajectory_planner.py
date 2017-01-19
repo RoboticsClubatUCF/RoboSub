@@ -13,16 +13,6 @@ import sub_trajectory.msg
 def rosToArray(msg):
     return np.array([getattr(msg, key) for key in ["x", "y", "z", "w"] if hasattr(msg, key)]) #List comprehension (how ironic) for getting a vector from a message
 
-#def rosToQuat(msg):
-#    if hasattr(msg, "w") and hasattr(msg, "x") and hasattr(msg, "y") and hasattr(msg, "z"):
-#        return np.quaternion(getattr(msg, "w"), getattr(msg, "x"), getattr(msg, "y"), getattr(msg, "z"))
-        
-def slerp(p0, p1, t):
-        omega = arccos(dot(p0/norm(p0), p1/norm(p1)))
-        so = sin(omega)
-        return sin((1.0-t)*omega) / so * p0 + sin(t*omega)/so * p1
-        
-
 class MovementServer:
     def __init__(self):
         rospy.loginfo("Movement server spooling up")
