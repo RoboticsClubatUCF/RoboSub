@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sub_trajectory)
 
-find_package(catkin REQUIRED COMPONENTS message_generation rospy)
+find_package(catkin REQUIRED COMPONENTS message_generation rospy roscpp)
 find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
 
 ## System dependencies are found with CMake's conventions
@@ -13,6 +13,7 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
    msg
    FILES
    ThrusterStatus.msg
+   ThrusterCmd.msg
  )
 
 ## Generate services in the 'srv' folder
