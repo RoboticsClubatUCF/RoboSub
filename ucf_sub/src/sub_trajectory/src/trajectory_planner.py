@@ -11,7 +11,7 @@ from scipy.integrate import odeint
 import sub_trajectory.msg
 
 def rosToArray(msg):
-    return np.array([getattr(msg, key) for key in ["x", "y", "z", "w"] if hasattr(msg, key)]) #List comprehension (how ironic) for getting a vector from a message
+    return np.array([getattr(msg, key) for key in ("x", "y", "z", "w") if hasattr(msg, key)])
 
 class MovementServer:
     def __init__(self):
@@ -26,12 +26,13 @@ class MovementServer:
         
         #TODO: Set these values more(?) properly
         #TODO: Make these params or something
+        #TODO: The new vehicle wont have the same amount of thrust in all 3 axes like this
         self.thrust = np.array([35.0, 35.0, 35.0]) #Newtons, ignore asymetrical thrust limits
         
         self.vehicleMass = 32.0 #kilograms
         
-        waterDensity = 1000 #kg/m^3 at 20C
-        vehicleArea = np.array([0.1297, 0.2065, 0.2065]) #Front cross-section (make this a vector?)
+        waterDensity = 1000 #kg/m^3 at 20C (update for salt?)
+        vehicleArea = np.array([0.1297, 0.2065, 0.2065]) #Vector of vehicle cross section
         vehicleCd = 0.7 #S.W.A.G. TODO: make this a real number (also a vector? a function?)
         
         self.dragConstant = (waterDensity * vehicleArea * vehicleCd) / 2 #All the stuff that doesnt change in one number
