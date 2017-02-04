@@ -13,7 +13,7 @@ import geometry_msgs.msg
 import nav_msgs.msg
         
 def rosToArray(msg):
-    return np.array([getattr(msg, key) for key in ["x", "y", "z", "w"] if hasattr(msg, key)]) #List comprehension (how ironic) for getting a vector from a message
+    return np.array([getattr(msg, key) for key in ("x", "y", "z", "w") if hasattr(msg, key)]) #List comprehension (how ironic) for getting a vector from a message
     
 def quatErrorToAxis(a, b): #adapted from parts of CUAUV's code
     a = np.array([-a[0], -a[1], -a[2], a[3]])
@@ -35,7 +35,7 @@ class ThrusterServer:
         
         self.tfListener = tf.TransformListener()
         
-        self.thrusterPublisher = rospy.Publisher('thrusters/cmd_vel', geometry_msgs.msg.Twist, queue_size=1)
+        self.thrusterPublisher = rospy.Publisher('thrusters/cmd_vel', geometry_msgs.msg.Wrench, queue_size=1)
         
         self.odomListener = rospy.Subscriber("/odom", nav_msgs.msg.Odometry, self.odomCallback)
         self.odom = None
