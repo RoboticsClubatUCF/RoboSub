@@ -1,5 +1,5 @@
 #include <ros/ros.h>
-#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Wrench.h>
 #include <geometry_msgs/Vector3.h>
 #include <sensor_msgs/Joy.h>
 
@@ -11,7 +11,7 @@ class ThrustControl {
   
   geometry_msgs::Vector3 linear;
   geometry_msgs::Vector3 angular;
-  geometry_msgs::Twist twistMsg;
+  geometry_msgs::Wrench twistMsg;
 
 public:
   ThrustControl()
@@ -19,7 +19,7 @@ public:
     trans_sub = nh_.subscribe("/translate/joy", 1, &ThrustControl::translateCb, this);
     rot_sub = nh_.subscribe("/rotate/joy", 1, &ThrustControl::rotateCb, this);
     
-    twist_pub = nh_.advertise<geometry_msgs::Twist>("sub/dualStickControl", 1000);
+    twist_pub = nh_.advertise<geometry_msgs::Wrench>("/desiredThrustWrench", 1000);
   }
   void init()
   {
@@ -40,9 +40,9 @@ public:
       ROS_INFO("JOYSTICK ERROR");
       return;
     }
-    twistMsg.linear.x = msg.axes[1];
-    twistMsg.linear.y = msg.axes[0];
-    twistMsg.linear.z = msg.axes[2];
+    twistMsg.force.x = msg.axes[1] * 20;
+    twistMsg.force.y = msg.axes[0] * 20;
+    twistMsg.force.z = msg.axes[2] * 20;
     ROS_INFO("TRANSLATION UPDATED");
   }
 
@@ -52,9 +52,9 @@ public:
       ROS_INFO("JOYSTICK ERROR: Not enough axes");
       return;
     }
-    twistMsg.angular.x = msg.axes[0];
-    twistMsg.angular.y = msg.axes[1];
-    twistMsg.angular.z = msg.axes[2];
+    twistMsg.torque.x = msg.axes[0] * -2;
+    twistMsg.torque.y = msg.axes[1] * 2;
+    twistMsg.torque.z = msg.axes[2] * 2;
     ROS_INFO("ROTATION UPDATED");
   }
 };
