@@ -2,6 +2,7 @@ thrusters:
     0: {
         thruster_name: "horizontal1",
         thruster_frame: "horizontal1_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [0.24, -0.19, 0.0],
         direction: [0.7071, 0.7071, 0]
@@ -9,6 +10,7 @@ thrusters:
     1: {
         thruster_name: "horizontal2",
         thruster_frame: "horizontal2_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [-0.21, -0.19, 0.0],
         direction: [-0.7071, 0.7071, 0]
@@ -16,6 +18,7 @@ thrusters:
     2: {
         thruster_name: "horizontal3",
         thruster_frame: "horizontal3_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [-0.21, 0.19, 0.0],
         direction: [-0.7071, -0.7071, 0]
@@ -23,6 +26,7 @@ thrusters:
     3: {
         thruster_name: "horizontal4",
         thruster_frame: "horizontal4_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [0.24, 0.19, 0.0],
         direction: [0.7071, -0.7071, 0]
@@ -30,6 +34,7 @@ thrusters:
     4: {
         thruster_name: "vertical1",
         thruster_frame: "vertical1_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [0.11, -0.18, 0.0],
         direction: [0, 0, 1]
@@ -37,6 +42,7 @@ thrusters:
     5: {
         thruster_name: "vertical2",
         thruster_frame: "vertical1_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [-0.08, -0.18, 0.0],
         direction: [0, 0, 1]
@@ -44,6 +50,7 @@ thrusters:
     6: {
         thruster_name: "vertical3",
         thruster_frame: "vertical1_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [-0.08, 0.18, 0.0],
         direction: [0, 0, 1]
@@ -51,6 +58,7 @@ thrusters:
     7: {
         thruster_name: "vertical4",
         thruster_frame: "vertical1_thruster",
+        thruster_type: "t200",
         data_frame: "base_link",
         position: [0.11, 0.18, 0.0],
         direction: [0, 0, 1]
