@@ -23,36 +23,36 @@
 		<!-- Sparton AHRS-8 -->
 		<param name="imu0" value="/imu0"/>
 		<rosparam param="imu0_config">[true, true, true,
-									   true, true, true,
-									   false, false, false,
-									   false, false, false,
-									   true, true, true]</rosparam>
+					       true, true, true,
+					       false, false, false,
+					       false, false, false,
+					       true, true, true]</rosparam>
 		<param name="imu0_remove_gravitational_acceleration" value="false"/>
 		
 		<!-- VectorNav VN-100 -->
 		<param name="imu1" value="/imu1"/>
 		<rosparam param="imu1_config">[true, true, true,
-									   true, true, true,
-									   false, false, false,
-									   false, false, false,
-									   true, true, true]</rosparam>
+					       true, true, true,
+					       false, false, false,
+					       false, false, false,
+					       true, true, true]</rosparam>
 		<param name="imu1_remove_gravitational_acceleration" value="true"/>
 
 		<!-- DVL -->
 		<param name="twist0" value="/dvl/data"/>
 		<rosparam param="twist0_config">[false, true, false, 
-										 false, false, false, 
-										 false, false, false, 
-										 false, false, false,
-										 false, false, false]</rosparam>
+						 false, false, false, 
+						 false, false, false, 
+						 false, false, false,
+						 false, false, false]</rosparam>
 
 		<!-- Barometer for depth sensing -->
 		<param name="pose0" value="/barometer/data"/>
 		<rosparam param="pose0_config">[false, false, false, 
-										false, false, false, 
-										true,  false, false, 
-										false, false, false,
-										false, false, false]</rosparam>
+						false, false, false, 
+						true,  false, false, 
+						false, false, false,
+						false, false, false]</rosparam>
 
 	</node>
 </launch>
