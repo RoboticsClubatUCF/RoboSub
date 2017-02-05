@@ -34,8 +34,8 @@ class VectorController:
                 rospy.loginfo("Thruster " + str(channel) + " is ok")
                 
                 #TODO: should we multiply by the actual thrust limit? I think so
-                force = self.thrusterData[channel]["direction"]
-                torque = np.cross(self.thrusterData[channel]["position"], self.thrusterData[channel]["direction"])
+                force = np.array(self.thrusterData[channel]["direction"]) * self.thrusterData[channel]["max_output"]
+                torque = np.cross(self.thrusterData[channel]["position"], force)
                 wrench = np.hstack([force, torque]) #Row of values
                 
                 B.append(wrench) #List of rows (which need to be columns in the final matrix)
