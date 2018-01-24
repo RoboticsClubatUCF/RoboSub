@@ -1,4 +1,4 @@
-# created 
+# created by Matthew Kurtz 1/23/2018
 
 import ms5837 #A python module to interface with MS5837-30BA and MS5837-02BA waterproof pressure and temperature sensors. (https://github.com/bluerobotics/ms5837-python)
 import rospy
