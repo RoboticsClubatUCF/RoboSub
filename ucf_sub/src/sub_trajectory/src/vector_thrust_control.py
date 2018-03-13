@@ -79,7 +79,7 @@ class VectorController:
         #optimization stuff is based on CUAUV and UF's methods
         optimize = False
         for v in pinvOutput:
-            if -1 > v or 1 < v:
+            if -0.2 > v or 0.2 < v:
                 optimize = True
                 break
                 
@@ -131,7 +131,7 @@ class VectorController:
                 x0=pinvOutput/(np.linalg.norm(pinvOutput)+0.1),
                 method="SLSQP",
                 jac=jacobian,
-                bounds=[(-1,1) for x in self.thrusterData],
+                bounds=[(-0.2,0.2) for x in self.thrusterData],
                 tol=0.1)
              rospy.logdebug("Optimized error: " + str(np.linalg.norm(desiredWrench - self.thrustToWrench.dot(minimized.x))))
         #rospy.loginfo("pinv: " + str(pinvOutput))
