@@ -12,7 +12,7 @@ from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 
-import gatefinder, navbarfinder, bouyfinder, vision_utils
+import polefinder, gatefinder, navbarfinder, bouyfinder, vision_utils
 
 class VisionServer:
     def __init__(self):
@@ -44,6 +44,7 @@ class VisionServer:
         self.targetType = TrackObjectGoal.navbar
         self.thresholds = self.loadThresholds()
         
+        self.poleFinder = poleFinder.PoleFinder()
         self.navBarFinder = navbarfinder.NavbarFinder()
         self.bouyFinder = bouyfinder.BuoyFinder()
         self.gatefinder = gatefinder.GateFinder()
@@ -67,6 +68,10 @@ class VisionServer:
                 self.running = False
                 continue
             
+            if self.targetType == TrackObjectGoal.pole:
+                self.feedback = self.poleFinder.process(self.leftImage,self.rightImage,self.disparityImage,self.leftModel,self.stereoModel)
+                self.server.publish_feedback(self.feedback)
+
             if self.targetType == TrackObjectGoal.navbar:
                 #Process navbar stuff
                 self.feedback = self.navBarFinder.process(self.downImage, self.downModel)
