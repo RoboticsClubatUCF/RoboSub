@@ -53,7 +53,7 @@ class image_converter:
     cv2.polylines(img, [pts], True, (0,255,255))
     cv2.line(img, [565,405], [twistJoystickTorque.x, twistJoystickTorque.y], (255,255,255))
 
-    cv2.putText(img,text,(10,500), font, 4,(255,255,255),2,cv2.LINE_AA)
+    cv2.putText(img,text,(10,100), font, 4,(255,255,255),2,cv2.LINE_AA)
 
     filename = text + ".png"
     cv2.imwrite(filename,img)
