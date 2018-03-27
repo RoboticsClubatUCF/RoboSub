@@ -5,7 +5,7 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [0.2286, -0.18415, 0.0],
+        position: [0.1, -0.1, 0.0],
         direction: [0.7071, 0.7071, 0]
     }
     "1": {
@@ -14,8 +14,8 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [-0.1905, -0.18415, 0.0],
-        direction: [-0.7071, 0.7071, 0]
+        position: [-0.1, 0.1, 0.0],
+        direction: [-0.7071, -0.7071, 0]
     }
     "2": {
         thruster_name: "horizontal3",
@@ -23,8 +23,8 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [-0.1905, 0.18415, 0.0],
-        direction: [-0.7071, -0.7071, 0]
+        position: [-0.1, -0.1, 0.0],
+        direction: [-0.7071, 0.7071, 0]
     }
     "3": {
         thruster_name: "horizontal4",
@@ -32,7 +32,7 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [0.2286, 0.18415, 0.0],
+        position: [0.1, 0.1, 0.0],
         direction: [0.7071, -0.7071, 0]
     }
     "4": {
@@ -41,8 +41,8 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [0.13335, -0.18415, 0.0],
-        direction: [0, 0, 1]
+        position: [0.1, 0.1, 0.0],
+        direction: [0, 0, -1]
     }
     "5": {
         thruster_name: "vertical2",
@@ -50,8 +50,8 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [-0.1016, -0.18415, 0.0],
-        direction: [0, 0, 1]
+        position: [-0.1, 0.1, 0.0],
+        direction: [0, 0, -1]
     }
     "6": {
         thruster_name: "vertical3",
@@ -59,8 +59,8 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [-0.1016, 0.18415, 0.0],
-        direction: [0, 0, 1]
+        position: [-0.1, -0.1, 0.0],
+        direction: [0, 0, -1]
     }
     "7": {
         thruster_name: "vertical4",
@@ -68,6 +68,6 @@ thrusters:
         thruster_type: "t200",
         max_output: 6.6,
         data_frame: "base_link",
-        position: [0.13335, 0.18415, 0.0],
-        direction: [0, 0, 1]
+        position: [0.1, -0.1, 0.0],
+        direction: [0, 0, -1]
     }
