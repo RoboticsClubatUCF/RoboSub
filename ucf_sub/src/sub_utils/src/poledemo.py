@@ -23,7 +23,7 @@ class image_converter:
 		except CvBridgeError as e:
 			print(e)
 
-		imageHSV = cv2.cvtColor(imageLeftRect, cv2.COLOR_BGR2HSV)
+		imageHSV = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 		resized = imutils.resize(imageHSV, width=300)
 		contours, _ = ThreshAndContour(resized, Thresholds(upper=(237,95,78.4),lower=(204,51,100)))
 
@@ -42,8 +42,8 @@ class image_converter:
 				pole.append(c)
 				poleCenter = (cX,cY)
 
-		cv2.drawContours(img, [pole], 0, (0,255,0), 3)
-		cv2.circle(img, (cx,cy), 10, (0,0,255), -1)
+		cv2.drawContours(cv_image, [pole], 0, (0,255,0), 3)
+		cv2.circle(cv_image, (cx,cy), 10, (0,0,255), -1)
 		cv2.imshow("Image window", cv_image)
 		cv2.waitKey(3)
 
