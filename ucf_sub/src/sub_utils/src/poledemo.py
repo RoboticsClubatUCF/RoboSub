@@ -12,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 class image_converter:
 
 	def __init__(self):
-		self.image_pub = rospy.Publisher("Contour Image", Image)
+		self.image_pub = rospy.Publisher("Contoured Image", Image)
 
 		self.bridge = CvBridge()
 		self.image_sub = rospy.Subscriber("/stereo/left/image_raw", Image, self.callback)
@@ -44,6 +44,8 @@ class image_converter:
 
 		cv2.drawContours(cv_image, [pole], 0, (0,255,0), 3)
 		cv2.circle(cv_image, (cx,cy), 10, (0,0,255), -1)
+		cv2.imshow("Image window", cv_image)
+		cv2.waitKey(3)
 
 		try:
 			self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image,"bgr8"))
