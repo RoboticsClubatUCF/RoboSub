@@ -12,10 +12,10 @@ from cv_bridge import CvBridge, CvBridgeError
 class image_converter:
 
 	def __init__(self):
-		self.image_pub = rospy.Publisher("image_topic_2", Image)
+		self.image_pub = rospy.Publisher("Contour Image", Image)
 
 		self.bridge = CvBridge()
-		self.image_sub = rospy.Subscriber("image_topic", Image, self.callback)
+		self.image_sub = rospy.Subscriber("/stereo/left/image_raw", Image, self.callback)
 
 	def callback(self,data):
 		try:
@@ -29,7 +29,7 @@ class image_converter:
 
 
 		if len(contours) == 0:
-		return None
+			return None
 
 		pole = []
 
@@ -44,8 +44,6 @@ class image_converter:
 
 		cv2.drawContours(cv_image, [pole], 0, (0,255,0), 3)
 		cv2.circle(cv_image, (cx,cy), 10, (0,0,255), -1)
-		cv2.imshow("Image window", cv_image)
-		cv2.waitKey(3)
 
 		try:
 			self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image,"bgr8"))
