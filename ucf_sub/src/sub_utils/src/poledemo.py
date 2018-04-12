@@ -21,8 +21,8 @@ class image_converter:
 		self.image_thresholds = rospy.Subscriber("/threshold_values", numpy_msg(Floats), self.getThresholds)
 
 	def getThresholds(self, data):
-		self.upper = data[0]
-		self.lower = data[1]
+		self.upper = data[0:3]
+		self.lower = data[3:6]
 		
 	def callback(self,data):
 		try:
