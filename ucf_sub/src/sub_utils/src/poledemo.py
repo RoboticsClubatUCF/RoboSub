@@ -14,8 +14,8 @@ class image_converter:
 
 	def __init__(self):
 		self.image_pub = rospy.Publisher("contoured_image", Image, queue_size=10)
-		self.lower = np.array([0,0,0], dtype = "uint8")
-    		self.upper = np.array([0,0,0], dtype = "uint8")
+		self.lower = np.array([44,54,88], dtype = "uint8")
+    		self.upper = np.array([67,110,251], dtype = "uint8")
 		self.bridge = CvBridge()
 		self.image_sub = rospy.Subscriber("/stereo/left/image_raw", Image, self.callback)
 		self.image_thresholds = rospy.Subscriber("/threshold_values", numpy_msg(Floats), self.getThresholds)
