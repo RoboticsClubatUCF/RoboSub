@@ -38,7 +38,7 @@ class image_converter:
         		cv2.CHAIN_APPROX_SIMPLE)
 
     		output = cv2.bitwise_and(cv_image, cv_image, mask = mask)
-    		cnts = cnts[0] 
+    		cnts = cnts[1] 
     		print(cnts)
     		cX = 0
     		cY = 0
