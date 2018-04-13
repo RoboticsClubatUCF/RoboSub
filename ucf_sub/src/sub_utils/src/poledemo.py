@@ -31,7 +31,8 @@ class image_converter:
 			print(e)
 
 		#imageHSV = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-		#resized = imutils.resize(imageHSV, width=300)
+		height, width = img.shape[:2]
+   		res = cv2.resize(img,(0.5*width, 0.5*height), interpolation = cv2.INTER_CUBIC)
 		
 		mask = cv2.inRange(cv_image, upper, lower)
     		cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
