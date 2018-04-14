@@ -12,10 +12,10 @@ import time
 class image_converter:
 
   def __init__(self):
-    self.image_pub = rospy.Publisher("image_topic_2",Image)
+    self.image_pub = rospy.Publisher("image_overlay",Image)
 
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("image_topic",Image,self.callback)
+    self.image_sub = rospy.Subscriber("/stereo/left/image_raw",Image,self.callback)
     self.twistJoystickForce = None
     self.twistJoystickTorque = None
     trans_sub = rospy.subscribe("/translate/joy", Joy, self.translateCb);
