@@ -1,51 +1,65 @@
 #!/usr/bin/env python
 
 import roslib
-roslib.load_manifest('package')
 import sys
 import rospy
 import cv2
+import numpy as np
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
 
 class image_converter:
 
 	def __init__(self):
-		self.image_pub = rospy.Publisher("Contoured Image", Image)
-
+		self.image_pub = rospy.Publisher("/contoured_image", Image, queue_size=10)
+		self.lower = np.array([52,95,241], dtype = "uint8")
+    		self.upper = np.array([30,56,158], dtype = "uint8")
 		self.bridge = CvBridge()
-		self.image_sub = rospy.Subscriber("/stereo/left/image_raw", Image, self.callback)
+		self.image_sub = rospy.Subscriber("/stereo/right/image_raw", Image, self.callback)
+		self.image_thresholds = rospy.Subscriber("/threshold_values", numpy_msg(Floats), self.getThresholds)
 
+	def getThresholds(self, data):
+		print(data)
+		self.upper = data[0:3]
+		self.lower = data[3:6]
+		
 	def callback(self,data):
 		try:
 			cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
 		except CvBridgeError as e:
 			print(e)
+		
+		#imageHSV = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+		#resized = imutils.resize(imageHSV, width=300)
+		
+		mask = cv2.inRange(cv_image, self.upper, self.lower)
+    		cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+        		cv2.CHAIN_APPROX_SIMPLE)
+		print(cnts[0])
+    		output = cv2.bitwise_and(cv_image, cv_image, mask = mask)
+    		cnts = cnts[1] 
+    		cX = 0
+    		cY = 0
+    		maxLength = 0
+    		pole = []
 
-		imageHSV = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-		resized = imutils.resize(imageHSV, width=300)
-		contours, _ = ThreshAndContour(resized, Thresholds(upper=(237,95,78.4),lower=(204,51,100)))
-
-
-		if len(contours) == 0:
-			return None
-
-		pole = []
-
-		for contour in contours:
-
+		for c in cnts:
 			M = cv2.moments(c)
-			if cv2.contourArea(c) > 1000:
+			if len(c) > maxLength:
+			    try:
 				cX = int(M["m10"] / M["m00"])
 				cY = int(M["m01"] / M["m00"])
-				pole.append(c)
-				poleCenter = (cX,cY)
+			    except:
+				x=1
+			    maxLength = len(c)
+			    pole = [c]
 
-		cv2.drawContours(cv_image, [pole], 0, (0,255,0), 3)
-		cv2.circle(cv_image, (cx,cy), 10, (0,0,255), -1)
-		cv2.imshow("Image window", cv_image)
-		cv2.waitKey(3)
+        	cv2.circle(cv_image, (cX, cY), 7, (255, 255, 255), -1)
+		cv2.putText(cv_image, "center", (cX - 20, cY - 20),
+		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
 		try:
 			self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image,"bgr8"))
