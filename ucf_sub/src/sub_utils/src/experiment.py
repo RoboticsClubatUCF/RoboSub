@@ -2,7 +2,7 @@ from geometry_msgs.msg import Wrench
 from sensor_msgs import Joy
 import pandas as pd
 import pickle
-
+import time
 
 class experiment:
 
@@ -15,7 +15,7 @@ class experiment:
 		
 		self.cameraPosition = None
 		
-		self.collectedData = {}
+		self.collectedData = []
 		
 		self.message = Wrench()
 		
@@ -40,39 +40,43 @@ class experiment:
 	def setCamera(self, data):
 		self.cameraPosition = (data.x, data.y)
 
-	def experiment(self):
-		if self.teleopControl > 0:
-		    for thrust in np.linspace(0, self.THRUST_MAX, num=10):
-		    	if self.teleopControl > 0:
-			    	for direction in [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]:
+	def experimentRun(self):
+		for thrust in np.linspace(0, self.THRUST_MAX, num=10):
+			for direction in [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]:
 
-			    	if self.teleopControl > 0:
-				        message.force = thrust * direction
+				force = thrust * np.array(direction)
+				message.force.x = force[1] * 6
+				message.force.y = force[0] * 6
+				message.force.z = force[2] * 6
 
-				    	try:
-				    		if self.teleopControl > 0:
-					    		startTime = time.time()
-					    		startPosition = self.cameraPosition
+				startTime = time.time()
+				startPosition = self.cameraPosition
+							
+				r = rospy.Rate(30)
+				
+				while startTime + duration < time.time():
+					r.sleep()
+								
+					if self.teleopControl > 0:
+						thrusterCommand.publish(message)
+						
+					else:
+						startTime = time.time()
+						startPosition = self.cameraPosition
+						thrusterCommand.publish(teleopMessage)
+					
+				endPosition = self.cameraPosition
 
-					    		thrusterCommand.publish(message)
-
-					    		while startTime + duration < time.time():
-					    			if self.teleopControl > 0:
-					    				break
-								else:
-									thrusterCommand.publish(teleopMessage)
-									
-					    		endPosition = self.cameraPosition
-
-					    		self.collectedData[message.force] = endPosition - startPosition
-						else:
-							thrusterCommand.publish(teleopMessage)
-				else: 
-					thrusterCommand.publish(teleopMessage)
-			else:
-				thrusterCommand.publish(teleopMessage)
-		else:
-			thrusterCommand.publish(teleopMessage)
+				self.collectedData.append((message.force.x,message.force.y,message.force.z), endPosition)
+					
+				message.force.x = 0
+				message.force.y = 0
+				message.force.z = 0
+				thrusterCommand.publish(message)
+				
+				stopTime = time.time()
+				while stopTime + 5 < time.time():
+					pass
 					
 
 def main(args):
@@ -81,9 +85,8 @@ def main(args):
     rospy.init_node('experiment', anonymous=False)
 	
     try:
-        rospy.spin()
-    	data = pd.from_dict(ex.collectedData)
-    	pickle.dump(data, open("experiment_data.p", "wb"))
+        ex.experimentRun()
+    	pickle.dump(ex.collectedData, open("experiment_data.p", "wb"))
 	
     except KeyboardInterrupt():
         print("Shutting down")
