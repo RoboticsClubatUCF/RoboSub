@@ -1,0 +1,50 @@
+import rospy
+import image_geometry
+from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
+from geometry_msgs.msg import Wrench
+import particle
+
+class visual_servo:
+
+	def __init__(self):
+		self.particleNum = 1000
+		self.imageWidth = 640
+		self.imageHeight = 480
+		self.xThreshold = 0
+		self.yThreshold = 0
+		self.message = Wrench()
+		self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
+		self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
+		self.box_sub = rospy.Subscriber("/object_bounding_box", numpy_msg(Floats), self.servoing)
+
+
+	def servoing(self, msg):
+
+		#Find the camera position in the frame
+		cX = image_geometry.cX
+		cY = image_geometry.cY
+
+		#If center of bounding box is not aligned with camera
+		if math.fabs(msg[0]-cX) > self.xThreshold:
+			if math.fabs(msg[1]-cY) > self.yThreshold:
+				self.particles = particle.update(self.particles, (cX,cY))
+				self.particles = particle.resample_particles(self.particles, self.particleNum)
+				
+				#Find new desired camera position
+				newPosition = findBestCommand(self.particles)
+				coordinates = (self.particles[newPosition][0],self.particles[newPosition][1])
+				rectCoord = image_geometry.rectifyPoint(coordinates)
+				newPosition = image_geometry.projectPixelTo3d(rectCoord)
+				
+				#Create Wrench 
+				#Todo: Figure out how to convert desired camera position to desired force and torque amounts
+				message.force.x = newPosition[1]
+				message.force.y = newPosition[0]
+				message.force.z = newPosition[2]
+				thrusterPublisher.publish(message)
+
+def main(args):
+	vs = visual_servo()
+	rospy.init_node('visual_servo', anonymous=False)
+	rospy.spin()
