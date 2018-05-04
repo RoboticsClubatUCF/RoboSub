@@ -32,6 +32,8 @@ def update(curPart, curPosit):
 		total = total + curPart[i][2]
 
 	curPart[...,2] = np.divide(curPart[...,2],total)
+	
+	return curPart
 
 def findBestCommand(particles):
 	return particles[np.unravel_index(particles[...,2].argmax(), particles[...,2].shape)]
