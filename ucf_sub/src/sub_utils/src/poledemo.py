@@ -17,7 +17,7 @@ class image_converter:
 		self.lower = np.array([44,54,88], dtype = "uint8")
     		self.upper = np.array([67,110,251], dtype = "uint8")
 		self.bridge = CvBridge()
-		self.image_sub = rospy.Subscriber("/stereo/left/image_raw", Image, self.callback)
+		self.image_sub = rospy.Subscriber("/stereo/right/image_rect_color", Image, self.callback)
 		self.image_thresholds = rospy.Subscriber("/threshold_values", numpy_msg(Floats), self.getThresholds)
 
 	def getThresholds(self, data):
@@ -26,42 +26,52 @@ class image_converter:
 		
 	def callback(self,data):
 		try:
-			cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+			img = self.bridge.imgmsg_to_cv2(data, "bgr8")
 		except CvBridgeError as e:
 			print(e)
 
-		#imageHSV = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-		height, width = img.shape[:2]
-   		res = cv2.resize(img,(0.5*width, 0.5*height), interpolation = cv2.INTER_CUBIC)
-		
-		mask = cv2.inRange(cv_image, upper, lower)
-    		cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
-        		cv2.CHAIN_APPROX_SIMPLE)
+		imageHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    	mask, contours = ThreshAndContour(imageHSV, (40,52,120), (20, 30, 80))
+    	output = cv2.bitwise_and(img, img, mask=mask)
 
-    		output = cv2.bitwise_and(cv_image, cv_image, mask = mask)
-    		cnts = cnts[1] 
-    		print(cnts)
-    		cX = 0
-    		cY = 0
-    		maxLength = 0
-    		pole = []
+    	if len(contours) == 0:
+        	return None
+            
+	    rects = []
+	    for contour in contours[1]: #adapted from https://github.com/opencv/opencv/blob/master/samples/python/squares.py
+	        epsilon = cv2.arcLength(contour, True)*0.05
+	        contour = cv2.approxPolyDP(contour, epsilon, True)
+	        if len(contour) == 4 and cv2.isContourConvex(contour):
+	            contour = contour.reshape(-1, 2)
+	            max_cos = np.max([angle_cos( contour[i], contour[(i+1) % 4], contour[(i+2) % 4] ) for i in range(4)])
+	            if max_cos < 0.1:
+	                rects.append(contour)
+	        
+	        if len(rects) > 1:
+	            rects = greatestNAreaContours(rects, 2)
+	            rect1 = cv2.minAreaRect(rects[0])
+	            rect2 = cv2.minAreaRect(rects[1])
+	            box = cv2.boxPoints(rect1)
+	            box = np.int0(box)
+	            cv2.drawContours(img,[box],5,(0,0,255),2)
+	            box = cv2.boxPoints(rect2)
+	            box = np.int0(box)
+	            cv2.drawContours(img,[box],5,(0,0,255),2)
 
-		for c in cnts:
-			M = cv2.moments(c)
-			if len(c) > maxLength:
-			    try:
-				cX = int(M["m10"] / M["m00"])
-				cY = int(M["m01"] / M["m00"])
-			    except:
-				x=1
-			    maxLength = len(c)
-			    pole = [c]
-
-        	cv2.circle(cv_image, (cX, cY), 7, (255, 255, 255), -1)
-		cv2.putText(cv_image, "center", (cX - 20, cY - 20),
-		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-		cv2.drawContours(cv_image, pole, -1, (0, 255, 0), 2)
-
+	            if(rect1[1][0] < rect1[1][1]): #Fix wonky angles from opencv (I think)
+	                rect1 = (rect1[0], rect1[1], (rect1[2] + 180) * 180/3.141)
+	            else:
+	                rect1 = (rect1[0], rect1[1], (rect1[2] + 90) * 180/3.141)
+	                
+	            if(rect2[1][0] < rect2[1][1]):
+	                rect2 = (rect2[0], rect2[1], (rect2[2] + 180) * 180/3.141)
+	            else:
+	                rect2 = (rect2[0], rect2[1], (rect2[2] + 90) * 180/3.141)
+	            
+	            gateLocation = None
+	            gateAxis = None
+	            gateAngle = None                     
+	            gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
 		
 
 		try:
