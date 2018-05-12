@@ -2,9 +2,9 @@
 int32 servotask
 
 #constants for servo task
-int32 gate = 0
-int32 align = 1 
-int32 drift = 2
+int32 gate=0
+int32 align=1 
+int32 drift=2
 
 ---
 #result

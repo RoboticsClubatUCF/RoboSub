@@ -8,6 +8,7 @@ int32 yellowBouy=2
 int32 greenBouy=3
 int32 startGate=4
 int32 trench=5
+int32 pole=6
 ---
 #result
 bool stoppedOk
