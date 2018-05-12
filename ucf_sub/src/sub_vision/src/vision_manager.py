@@ -74,8 +74,10 @@ class VisionServer:
 			self.feedback = self.poleFinder.process(self.leftImage,self.rightImage,self.disparityImage,self.leftModel,self.stereoModel)
 			if self.feedback.found:
 				self.server.publish_feedback(self.feedback)
+				self.feedback.found = False
 				self.response.found=True
-				self.server.set_succeeded(self.response)
+				if not goal.servoing:
+					self.running = False
 
 	self.response.stoppedOk=self.ok
 	self.server.set_succeeded(self.response)

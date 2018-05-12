@@ -15,7 +15,6 @@ class PoleFinder:
 	def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel):
 		#imageHSV = cv2.cvtColor(imageRightRect, cv2.COLOR_BGR2HSV)
 		#resized = cv2.resize(imageLeftRect, width=300)
-
 		mask=cv2.inRange(imageRightRect, np.array([10,30,80],dtype='uint8'),np.array([80,120,225],dtype='uint8'))
 		output = cv2.bitwise_and(imageRightRect, imageRightRect, mask=mask)
 		self.image_pub.publish(self.bridge.cv2_to_imgmsg(output, "bgr8"))

@@ -9,6 +9,8 @@ from geometry_msgs.msg import Wrench
 import actionlib
 from sensor_msgs.msg import CameraInfo, Imu
 from std_msgs.msg import Float32
+import math
+import numpy as np
 
 class visual_servo:
 
@@ -36,7 +38,7 @@ class visual_servo:
 
 		self.result=False
 		self.camera_info_pub = rospy.Subscriber("/stereo/right/camera_info", CameraInfo, self.initInfo)
-		self.vision_feedback = rospy.Subscriber('/track_Object/feedback', TrackObjectFeedback, self.servoing)
+		self.vision_feedback = rospy.Subscriber('/track_object/feedback', TrackObjectFeedback, self.servoing)
                 self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
                 self.thruster_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
                 self.desired_wrench = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1)
@@ -86,16 +88,19 @@ class visual_servo:
  		if msg.servotask == VisualServoGoal.gate:
                 	self.goal = TrackObjectGoal()
                 	self.goal.objectType = self.goal.startGate
-                	self.vision_client.send_goal(self.goal)
+			self.goal.servoing = True
+			self.vision_client.send_goal(self.goal)
 			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
 
                 elif msg.servotask == VisualServoGoal.drift:
                      	self.goal = TrackObjectGoal()
+			self.goal.servoing = True
         		self.goal.objectType = self.goal.pole
         		self.vision_client.send_goal(self.goal)
 
 		elif msg.servotask == VisualServoGoal.align:
 	               	self.goal = TrackObjectGoal()
+			self.goal.servoing = True
                        	self.goal.objectType = self.goal.pole
                        	self.vision_client.send_goal(self.goal)
 
@@ -113,32 +118,32 @@ class visual_servo:
 		self.response.aligned=True
 		self.server.set_succeeded(self.response)
 
-	def servoing(self):
-		#rospy.loginfo(msg)
+	def servoing(self,msg):
+		rospy.loginfo(type(msg.feedback))
 		#rospy.loginfo(feedback)
 		#rospy.loginfo(self.vision_client.get_result())
 		if self.goal == VisualServoGoal.drift:
 			if self.orientationZ - self.startYaw < 270:
 				#Find distance to pole
 				interaction = None
-				coordinates = ig.projectPixelTo3dRay(msg.center)
+				coordinates = self.camera_info.projectPixelTo3dRay(msg.center)
 				u = self.lam * (coordinates[0]/coordinates[2])
 				v = self.lamb * (coordinates[1]/coordinates[2])
 				Z = coordinates[2]
 
-				if distance_to_object(msg.width) >= self.maintainedDistance:
-					int_matrix = interaction_matrix([1,5], u,v,Z)
+				if self.distance_to_object(msg.width) >= self.maintainedDistance:
+					int_matrix = self.interaction_matrix([1,5], u,v,Z)
 					forces = np.matmul(np.linalg.pinv(int_matrix), coordinates+self.translationUnits)
-					message.force.x = self.speed
-					message.force.y = forces[0]
-					message.force.z = self.Depth
-					message.torque.x = self.orientationX
-					message.torque.y = self.orientationY
-					message.torque.z = forces[1]
+					self.message.force.x = self.speed
+					self.message.force.y = forces[0]
+					self.message.force.z = self.Depth
+					self.message.torque.x = self.orientationX
+					self.message.torque.y = self.orientationY
+					self.message.torque.z = forces[1]
 					self.thruster_pub.publish(message)
 
 			else:
-				self.response.success = True
+				self.response.aligned = True
 				self.server.set_succeeded(self.response)
 
 		else:
@@ -147,17 +152,17 @@ class visual_servo:
 			cY = self.camera_info.cy()
 
 			#If center of bounding box is not aligned with camera
-			if math.fabs(msg.center[0]-cX) > self.xThreshold:
-				if math.fabs(msg.center[1]-cY) > self.yThreshold:
-					coordinates = [ig.projectPixelTo3dRay(msg.center) for i in range(3)]
+			if math.fabs(msg.feedback.center[0]-cX) > self.xThreshold:
+				if math.fabs(msg.feedback.center[1]-cY) > self.yThreshold:
+					coordinates = [self.camera_info.projectPixelTo3dRay(msg.feedback.center) for i in range(3)]
 					u = [self.lam * (coordinates[i][0]/coordinates[i][2]) for i in range(3)]
-					v = [self.lamb * (coordinates[i][1]/coordinates[i][2]) for i in range(3)]
+					v = [self.lam * (coordinates[i][1]/coordinates[i][2]) for i in range(3)]
 					Z = [coordinates[i][2] for i in range(3)]
 					dof = [0,1,2,3,4,5,6]
-					int_matrix = interaction_matrix(dof, u[i], v[i], Z[i])
+					int_matrix = self.interaction_matrix(dof, u[i], v[i], Z[i])
 
 					for i in range(2):
-						int_matrix = np.stack(int_matrix, interaction_matrix(dof, u[i+1], v[i+1], Z[i+1]))
+						int_matrix = np.stack(int_matrix, self.interaction_matrix(dof, u[i+1], v[i+1], Z[i+1]))
 
 
 					self.particles = particle.update(self.particles, (cX,cY))
@@ -165,20 +170,20 @@ class visual_servo:
 					#Find new desired camera position
 					newPosition = findBestParticle(self.particles)
 					coordinates = (self.particles[newPosition][0],self.particles[newPosition][1])
-					newPosition = ig.projectPixelTo3d(coordinates)
+					newPosition = self.camera_info.projectPixelTo3d(coordinates)
 					newCommand = np.matmul(np.linalg.pinv(int_matrix),newPosition)
 
 					#Create Wrench
-					message.force.x = newCommand[1]
-					message.force.y = newCommand[0]
-					message.force.z = newCommand[2]
-					message.torque.x = newCommand[3]
-					message.torque.y = newCommand[4]
-					message.torque.z = newCommand[5]
-					thrusterPublisher.publish(message)
+					self.message.force.x = newCommand[1]
+					self.message.force.y = newCommand[0]
+					self.message.force.z = newCommand[2]
+					self.message.torque.x = newCommand[3]
+					self.message.torque.y = newCommand[4]
+					self.message.torque.z = newCommand[5]
+					self.thruster_pub.publish(message)
 
 			else:
-				self.response.success = True
+				self.response.aligned = True
 				self.server.set_succeeded(self.response)
 
 

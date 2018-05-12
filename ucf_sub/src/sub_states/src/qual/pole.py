@@ -10,7 +10,6 @@ class locate(smach.State):
         	smach.State.__init__(self, outcomes=['preempted','success', 'failure'])
         	self.client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
         	self.client.wait_for_server()
-		self.result=False
 
 	def execute(self, userdate):
         	rospy.loginfo("Locating the pole.")
@@ -18,6 +17,7 @@ class locate(smach.State):
 
         	goal = TrackObjectGoal()
         	goal.objectType = goal.pole
+		goal.servoing = False
         	self.client.send_goal(goal)
 
 		self.client.wait_for_result()

@@ -1,5 +1,6 @@
 #goal
 int32 objectType
+bool servoing
 
 #Constants for object types
 int32 startGate=0
