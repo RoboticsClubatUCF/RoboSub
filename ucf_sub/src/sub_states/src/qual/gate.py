@@ -45,16 +45,18 @@ class through(smach.State):
 
 	def execute(self, userdate):
 		rospy.loginfo("Going through the gate")
-		while vision_manager.msg.TrackObjectResult():
+
+		while vision_manager.msg.TrackObjectResult().found:
 			message.force.x = 1
 			message.force.y = 0
 			message.force.z = 0
 			message.torque.x = 0
 			message.torque.y = 0
 			message.torque.z = 0
-		
-		if not vision_manager.msg.TrackObjectResult():
-			if vision_manager.msg.gateDone:
-				return 'qualified'
-			else:
-				return 'success'
+
+		qualStatus = vision_manager.msg.TrackObjectResult()
+
+		if qualStatus.poleDone:
+			return 'qualified'
+		else:
+			return 'success'
