@@ -16,11 +16,11 @@ class SubStates:
 	def __init__(self):
 		rospy.loginfo("State Machine has started.")
 
-		self.tasks = smach.StateMachine(outcomes=['FINISHED'])
+		self.gate = smach.StateMachine(outcomes=['preempted', 'POLE', 'GATE'])
+		self.pole = smach.StateMachine(outcomes=['preempted', 'GATE', 'POLE'])
+		self.tasks = smach.StateMachine(outcomes=['POLE', 'GATE', 'preempted', self.gate, self.pole])
 
 		with self.tasks:
-
-			self.gate = smach.StateMachine(outcomes=['preempted', 'POLE'])
 
 			with self.gate:
 				smach.StateMachine.add('LOCATE', gate.locate(),
@@ -37,9 +37,6 @@ class SubStates:
 						       transitions={'preempted':'preempted',
 								    'success': 'POLE',
 								    'failure':'LOCATE'})
-
-			self.pole = smach.StateMachine(outcomes=['preempted', 'success', 'failure', 'GATE'])
-
 			with self.pole:
 
 				smach.StateMachine.add('LOCATE', pole.locate(),
@@ -57,11 +54,11 @@ class SubStates:
 								    'success': 'GATE',
 								    'failure': 'LOCATE'})
 
-			smach.StateMachine.add('Start', gate, transitions={'POLE':self.pole, 'GATE':self.gate})
-
-		outcome = tasks.exectute()
+			smach.StateMachine.add('Start', self.gate, transitions={'POLE':self.pole, 'GATE':self.gate})
+		
 
 if __name__ == '__main__':
 	rospy.init_node('hippo_sm')
 	sm = SubStates()
+	outcome = sm.tasks.execute()
 	rospy.spin()

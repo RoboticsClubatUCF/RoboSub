@@ -9,20 +9,20 @@ from geometry_msgs.msg import Wrench
 class locate(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted','success', 'failure'])
-		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
-		self.vision_client.wait_for_server()
+		self.client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
+		self.client.wait_for_server()
 
 	def execute(self, userdata):
 		rospy.loginfo("Locating the gate.")
 		start = rospy.Time(0)
 		goal = TrackObjectGoal()
 		goal.objectType = goal.startGate
-		self.vision_client.send_goal(goal)
+		self.client.send_goal(goal)
 
-		self.vision_client.wait_for_result()
-		result = vision_client.get_result()
+		self.client.wait_for_result()
+		result = self.client.get_result()
 
-		if result:
+		if result.found:
 			rospy.loginfo("Gate located.")
 			return 'success'
 
@@ -43,9 +43,9 @@ class align(smach.State):
 		self.client.send_goal(goal)
 
 		self.client.wait_for_result()
-		result = client.get_result()
+		result = self.client.get_result()
 
-		if result:
+		if result.aligned:
 			return 'success'
 		
 		else: 
@@ -55,19 +55,19 @@ class through(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
 		self.message = Wrench()
-		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
-		self.vision_client.wait_for_server()
+		self.client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
+		self.client.wait_for_server()
 
 	def execute(self, userdate):
 		rospy.loginfo("Going through the gate")
 		goal = TrackObjectGoal()
-		goal.servotask = goal.gate
+		goal.objectType = goal.startGate
 		self.client.send_goal(goal)
 
 		self.client.wait_for_result()
-		result = vision_client.get_result()
+		result = self.client.get_result()
 
-		if not result:
+		if not result.found:
 
 			message.force.x = 1
 			message.force.y = 0
@@ -78,4 +78,4 @@ class through(smach.State):
 			return 'failure'
 
 		else:
-			pass
+			return 'success'
