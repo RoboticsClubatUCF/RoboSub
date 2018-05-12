@@ -4,6 +4,7 @@ import tf
 import actionlib
 import actionlib_msgs.msg
 import vision_manager.msg
+import visual_servo.msg
 import visual_servo as vs
 from geometry_msgs.msg import Wrench
 
@@ -25,18 +26,22 @@ class locate(smach.State):
 			rospy.loginfo("Gate located.")
 			return 'success'
 		if not found:
-			return failure
+			return 'failure'
 
 class align(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure', 'qualified'])
+		self.servo_client = actionlib.SimpleActionClient('visual_servo')
+                self.servo_client.wait_for_server()
+
 	def execute(self, userdata):
 		rospy.loginfo("Aligning the gate.")
-		vs.main()
-		if vs.aligned:
-			return 'success'
-		else:
-			return 'failure'
+		while True:
+			if visual_servo.msg.TrackObjectResult.aligned:
+				return 'success'
+			else:
+				pass
+		return 'failure'
 
 class through(smach.State):
 	def __init__(self):
