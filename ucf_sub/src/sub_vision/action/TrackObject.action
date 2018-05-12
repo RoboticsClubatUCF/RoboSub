@@ -11,6 +11,8 @@ int32 trench=5
 ---
 #result
 bool stoppedOk
+bool found
+bool poleDone
 ---
 #feedback
 Header header
