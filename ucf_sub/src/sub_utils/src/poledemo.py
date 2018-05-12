@@ -10,9 +10,6 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
-from sub_utils.msg import CameraPosition
-import distance_to_camera as distance
-
 
 class image_converter:
 
@@ -20,14 +17,14 @@ class image_converter:
         self.image_pub = rospy.Publisher(
             "/contoured_image", Image, queue_size=10)
         self.lower = np.array([9, 27, 100], dtype="uint8")
-        self.upper = np.array([39, 83, 247], dtype="uint8")        
+        self.upper = np.array([39, 83, 247], dtype="uint8")
 	self.bridge = CvBridge()
         self.focalLength = None
-        self.image_sub = rospy.Subscriber(
-            "/stereo/left/image_raw", Image, self.callback)
-        self.camera_position = rospy.Publisher(
-            "/camera_position", CameraPosition, queue_size=10)
-
+        self.tracker = cv2.TrackerKCF_create()
+	self.ok = None
+	self.image_sub = rospy.Subscriber(
+            "/stereo/right/image_color", Image, self.callback)
+        
     def getThresholds(self, data):
         self.upper = data[0:3]
         self.lower = data[3:6]
@@ -46,8 +43,6 @@ class image_converter:
 
         output = cv2.bitwise_and(cv_image, cv_image, mask=mask)
         cnt = cnts[1]
-        cX = 0
-        cY = 0
 
         maxLength = 0
         pole = []
@@ -61,25 +56,27 @@ class image_converter:
                     		pass
                 	maxLength = len(c)
                 	pole = np.array(c)
-	print(cX, cY)
-        #cv2.circle(cv_image, (cX, cY), 7, (255, 255, 255), -1)
-        #cv2.putText(cv_image, "center", (cX - 20, cY - 20),
-        #           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        rect = cv2.minAreaRect(pole)
-	box = cv2.boxPoints(rect)
-	box = np.int0(box)
-	cv2.drawContours(cv_image, [box], 0, (0, 0, 255), 2)
 
-        message = CameraPosition()
-        message.x = cX
-	if self.focalLength == None:
-		_ , self.focalLength = distance.findDistance(rect,self.focalLength)
+	x,y,w,h = cv2.boundingRect(pole)
+        #rect = cv2.minAreaRect(pole)
+	#box = cv2.boxPoints(rect)
+	#bbox = cv2.selectROI(cv_image,box)
+	#box = np.int0(box)
+
+	if self.ok == None:
+		self.ok = self.tracker.init(cv_image, (x,y,w,h))
 	else:
-		message.y, self.focalLength = distance.findDistance(rect,self.focalLength)	
+		self.ok, box = self.tracker.update(cv_image)
+
+	try:
+		p1 = (int(box[0]), int(box[1]))
+		p2 = (int(box[0] + box[2]), int(box[1] + box[3]))
+		cv2.rectangle(cv_image, p1, p2, (255,0,0), 2, 1)
+	except:
+		pass
 
 	try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
-            #self.camera_position.publish(message)
         except CvBridgeError as e:
             	print(e)
 
