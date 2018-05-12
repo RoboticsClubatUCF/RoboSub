@@ -4,8 +4,9 @@ import tf
 import actionlib
 import actionlib_msgs.msg
 import vision_manager.msg
+import visual_servo as vs
 import trajectory_planner.msg
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Wrench
 
 class locate(smach.State):
 	"""
@@ -62,7 +63,7 @@ class locate(smach.State):
 		if not found:
 			return 'failure'
 
-                        
+
         def feedback_cb(self,feedback):
                 if feedback is not None:
                         try:
@@ -78,7 +79,7 @@ class locate(smach.State):
                                         self.rel_pose.rotation.x = feedback.targetPose.rotation.x
                                         self.rel_pose.rotation.y = feedback.targetPose.rotation.y
                                         self.rel_pose.rotation.z = feedback.targetPose.rotation.z
-                
+
 class align(smach.State):
 	"""
 	Aligns the submarine with the gate so that passing through is (hopefully) a straight shot.
@@ -89,7 +90,7 @@ class align(smach.State):
 
 	def execute(self, userdata):
 		rospy.loginfo("Aligning the gate.")
-
+		vs.main() #Call visual servoing
 
 class through(smach.State):
 	"""
@@ -98,14 +99,13 @@ class through(smach.State):
 
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
+		self.message = Wrench()
 
+	#Set to 1 in the +x direction for now
 	def execute(self, userdata):
-		rospy.loginfo("Attempting to touch the {} buoy.".format(buoyColor))
-		
-		# move forward
-			rospy.loginfo("Moving forward to touch the {} buoy.".format(buoyColor))
-			#moce forward
-
-		# successful
-			rospy.loginfo("The {} buoy was successfully touched.".format(buoyColor))
-			# reverse
+		message.force.x = 1
+		message.force.y = 0
+		message.force.z = 0
+		message.torque.x = 0
+		message.torque.y = 0
+		message.torque.z = 0
