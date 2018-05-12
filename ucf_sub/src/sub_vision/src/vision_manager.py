@@ -66,15 +66,12 @@ class VisionServer:
 
             	elif self.targetType == TrackObjectGoal.startGate:
  	        	self.feedback = self.gatefinder.process(self.leftImage, self.rightImage, self.disparityImage, self.leftModel, self.stereoModel)
-                if self.feedback.found:
-                    self.server.publish_feedback(self.feedback)
-                    self.feedback.found = False
-                    self.response.found=True
-                if not goal.servoing:
-                    self.running = False
-
-			if self.feedback is not None:
-				self.server.publish_feedback(self.feedback)
+                	if self.feedback.found:
+                    		self.server.publish_feedback(self.feedback)
+                    		self.feedback.found = False
+                    		self.response.found=True
+                	if not goal.servoing:
+                    		self.running = False
 
             	elif self.targetType == TrackObjectGoal.pole:
 			self.feedback = self.poleFinder.process(self.leftImage,self.rightImage,self.disparityImage,self.leftModel,self.stereoModel)
