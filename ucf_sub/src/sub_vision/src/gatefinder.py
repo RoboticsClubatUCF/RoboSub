@@ -74,7 +74,14 @@ class GateFinder:
 
 		gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
 		feedback.center = gateCenter
-        feedback.found = True
+
+        	if gateCenter[0] - rect1[0][0] > 0:
+			feedback.width = (rect2[0][0]+(rect2[1][0]/2)) - (rect1[0][0] - (rect1[1][0]/2))
+		else:
+			feedback.width = (rect1[0][0] -(rect1[1][0]/2)) - (rect2[0][0]+(rect2[1][0]/2))
+
+		feedback.height = rect1[1][1]
+		feedback.found = True
 		return feedback
 
 
