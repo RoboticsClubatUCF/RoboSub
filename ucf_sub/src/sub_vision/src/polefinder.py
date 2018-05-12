@@ -44,6 +44,6 @@ class PoleFinder:
 		feedback.center = poleCenter
 		feedback.width = w
 		feedback.height = h
-		rospy.loginfo(feedback)
+		#rospy.loginfo(feedback)
 		return feedback
 

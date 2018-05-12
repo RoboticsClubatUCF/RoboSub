@@ -18,20 +18,17 @@ class locate(smach.State):
 
         	goal = TrackObjectGoal()
         	goal.objectType = goal.pole
-        	result = self.client.send_goal(goal,self.feedbackCb)
+        	self.client.send_goal(goal)
 
+		self.client.wait_for_result()
+		result = self.client.get_result()
 		#rospy.loginfo(self.feedback.found)
-		while not result:
-			continue
+		if result.found:
+			return 'success'
 
-		return 'success'
-
-	def feedbackCb(self,feedback):
-		rospy.loginfo("here")
-		if feedback.found:
-			result = True
 		else:
-			result = False
+			return 'failure'
+
 
 class align(smach.State):
 	def __init__(self):

@@ -61,7 +61,6 @@ class VisionServer:
 
         while self.running: 
        		if self.server.is_preempt_requested() or self.server.is_new_goal_available():
-                	rospy.loginfo("here")	
 			self.running = False
                 	continue
 
@@ -73,10 +72,11 @@ class VisionServer:
 
             	elif self.targetType == TrackObjectGoal.pole:
 			self.feedback = self.poleFinder.process(self.leftImage,self.rightImage,self.disparityImage,self.leftModel,self.stereoModel)
-			self.server.publish_feedback(self.feedback)
+			if self.feedback.found:
+				self.server.publish_feedback(self.feedback)
+				self.response.found=True
+				self.server.set_succeeded(self.response)
 
-
-	self.response.found=False
 	self.response.stoppedOk=self.ok
 	self.server.set_succeeded(self.response)
 

@@ -7,12 +7,13 @@ import vision_manager
 from sub_vision.msg import VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult, TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult
 from geometry_msgs.msg import Wrench
 import actionlib
-
+from sensor_msgs.msg import CameraInfo, Imu
+from std_msgs.msg import Float32
 
 class visual_servo:
 
 	def __init__(self):
-		self.server = actionlib.SimpleActionServer('visual_servo', VisualServoAction, self.execute, False)
+		self.server = actionlib.SimpleActionServer('visual_servo', VisualServoAction,self.execute,False)
 		self.server.start()
 
 		self.particleNum = 1000
@@ -26,15 +27,35 @@ class visual_servo:
 
 		self.message = Wrench()
 
-		self.response = TrackObjectResult()
+		self.response = VisualServoResult()
 
-		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction, feedbackCb=self.servoing)
+		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
 		self.vision_client.wait_for_server()
 
+		self.camera_info = None
+
+		self.result=False
+		self.camera_info_pub = rospy.Subscriber("/stereo/right/camera_info", CameraInfo, self.initInfo)
+		self.vision_feedback = rospy.Subscriber('/track_Object/feedback', TrackObjectFeedback, self.servoing)
                 self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
                 self.thruster_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
                 self.desired_wrench = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1)
 
+		self.startYaw = None
+                self.FirstIMUCall = True
+                self.imuSubscriber = rospy.Subscriber("/imu/data", Imu, self.initIMU)
+                self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
+                self.knownWidth = 0.0
+                self.maintainedDistance = 12
+                self.speed = 1
+
+
+
+	def initInfo(self, msg):
+		self.camera_info = ig.PinholeCameraModel()
+		self.camera_info.fromCameraInfo(msg)
+                self.fx = self.camera_info.fx()
+                self.fy = self.camera_info.fy()
 
 
 	def interaction_matrix(self, dof, u, v, Z):
@@ -57,32 +78,46 @@ class visual_servo:
 		self.desired_wrench.publish(msg)
 
 	def initDepth(self, msg):
-		self.Depth = self.msg
+		self.Depth = msg
 
-	def execute(self,goal):
-		if goal.servotask == gate:
-                	goal = vision_manager.msg.TrackObjectGoal()
-                	goal.objectType = goal.gate
-                	self.vision_client.send_goal(goal)
+	def execute(self,msg):
+		self.running=True
+
+ 		if msg.servotask == VisualServoGoal.gate:
+                	self.goal = TrackObjectGoal()
+                	self.goal.objectType = self.goal.startGate
+                	self.vision_client.send_goal(self.goal)
 			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
 
-                elif goal == VisualServoGoal.pole:
-                        goal = vision_manager.msg.TrackObjectGoal()
-        		goal.objectType = goal.pole
-        		self.vision_client.send_goal(goal)
-			self.startYaw = None
-                        self.FirstIMUCall = True
-                        self.imuSubscriber = rospy.Subscriber("/imu/data", ros_imu_msg, self.initImu)
-                        self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
-                        self.fx = image_geometry.fx
-                        self.fy = image_geometry.fy
-                        self.knownWidth = 0.0
-                        self.maintainedDistance = 12
-                        self.speed = 1
+                elif msg.servotask == VisualServoGoal.drift:
+                     	self.goal = TrackObjectGoal()
+        		self.goal.objectType = self.goal.pole
+        		self.vision_client.send_goal(self.goal)
+
+		elif msg.servotask == VisualServoGoal.align:
+	               	self.goal = TrackObjectGoal()
+                       	self.goal.objectType = self.goal.pole
+                       	self.vision_client.send_goal(self.goal)
+
+		while self.running:
+	                if self.server.is_preempt_requested() or self.server.is_new_goal_available():
+        	               self.running = False
+                	       continue
 
 
-	def servoing(self, msg):
-		if self.goal == VisualServoGoal.pole:
+		self.response.aligned = False
+		self.server.set_succeeded(self.response)
+
+	def transition(self,gh, result):
+		rospy.loginfo(result)
+		self.response.aligned=True
+		self.server.set_succeeded(self.response)
+
+	def servoing(self):
+		#rospy.loginfo(msg)
+		#rospy.loginfo(feedback)
+		#rospy.loginfo(self.vision_client.get_result())
+		if self.goal == VisualServoGoal.drift:
 			if self.orientationZ - self.startYaw < 270:
 				#Find distance to pole
 				interaction = None
@@ -108,8 +143,8 @@ class visual_servo:
 
 		else:
 			#Find the camera position in the frame
-			cX = image_geometry.cX
-			cY = image_geometry.cY
+			cX = self.camera_info.cx()
+			cY = self.camera_info.cy()
 
 			#If center of bounding box is not aligned with camera
 			if math.fabs(msg.center[0]-cX) > self.xThreshold:
