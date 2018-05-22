@@ -31,7 +31,7 @@ class VectorController:
         
         for channel in sorted(self.thrusterData):
             #rospy.loginfo("Adding thruster " + str(channel))
-            if self.thrusterStatuses.has_key(channel) and self.thrusterStatuses[channel].thrusterOk:
+            if True: #self.thrusterStatuses.has_key(channel) and self.thrusterStatuses[channel].thrusterOk:
                 #rospy.loginfo("Thruster " + str(channel) + " is ok")
                 
                 #TODO: should we multiply by the actual thrust limit? I think so
@@ -139,10 +139,10 @@ class VectorController:
         message = ThrusterCmd()
         
         if optimize:
-            rospy.loginfo("optimize output wrench: " + str(self.thrustToWrench.dot(minimized.x)))
+            #rospy.loginfo("optimize output wrench: " + str(self.thrustToWrench.dot(minimized.x)))
             message.cmd = minimized.x.tolist()
         else:
-            rospy.loginfo("pinv output wrench: " + str(self.thrustToWrench.dot(pinvOutput)))
+            #rospy.loginfo("pinv output wrench: " + str(self.thrustToWrench.dot(pinvOutput)))
             message.cmd = pinvOutput.tolist()
         
         self.thrustPublisher.publish(message)
@@ -167,7 +167,7 @@ class VectorController:
         rospy.Subscriber("desiredThrustWrench", Wrench, self.commandCb)
         rospy.Subscriber("thrusterStatus", ThrusterStatus, self.thrusterStatusCb)
         
-        self.thrustPublisher = rospy.Publisher("thrusterCmd", ThrusterCmd, queue_size=10)
+        self.thrustPublisher = rospy.Publisher("/thrusters/cmd_vel", ThrusterCmd, queue_size=10)
         
         rate = rospy.Rate(5)
         while not rospy.is_shutdown():

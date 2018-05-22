@@ -21,38 +21,44 @@ def greatestAreaContour(contours):
     if len(contours) > 0:
         return max(contours, key=cv2.contourArea)
 
+def nlargest(n, contours, key):
+    largestContours = []
+    if key == cv2.contourArea:
+        sortedContours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+        for i in range(n):
+            largestContours.append(sortedContours[i])
+    return largestContours
+
 def greatestNAreaContours(contours, n):
     return nlargest(n, contours, key=cv2.contourArea)
     
-def ThreshAndCountour(srcImage, thresholds):
-    imgThreshed = cv2.inrange(srcImage, thresholds.lower, thresholds.upper)
+def ThreshAndContour(srcImage, upper, lower):
+    imgThreshed = cv2.inRange(srcImage, lower, upper)
     
     kernel = np.ones((5,5),np.uint8)
     opening = cv2.morphologyEx(imgThreshed, cv2.MORPH_OPEN, kernel)
     closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
     
-    contours, hierarchy = cv2.findContours(closing, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours = cv2.findContours(closing, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
-    return contours, hierarchy
+    return imgThreshed, contours
     
 
 def cartesian(arrays, out=None): #from http://stackoverflow.com/a/1235363
     """
     Generate a cartesian product of input arrays.
-
     Parameters
     ----------
     arrays : list of array-like
         1-D arrays to form the cartesian product of.
     out : ndarray
         Array to place the cartesian product in.
-
     Returns
     -------
     out : ndarray
         2-D array of shape (M, len(arrays)) containing cartesian products
         formed of input arrays.
-
     Examples
     --------
     >>> cartesian(([1, 2, 3], [4, 5], [6, 7]))
@@ -68,7 +74,6 @@ def cartesian(arrays, out=None): #from http://stackoverflow.com/a/1235363
            [3, 4, 7],
            [3, 5, 6],
            [3, 5, 7]])
-
     """
 
     arrays = [np.asarray(x) for x in arrays]
