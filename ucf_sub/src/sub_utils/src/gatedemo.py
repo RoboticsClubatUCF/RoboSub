@@ -57,9 +57,9 @@ class image_converter:
 	                		rects.append(contour)
 	        
 	        	if len(rects) > 1:
-					rects = sorted(contours, key=cv2.contourArea, reverse=True)
-					rect1 = cv2.minAreaRect(rects[0])
-	            	rect2 = cv2.minAreaRect(rects[1])
+				rects = sorted(contours, key=cv2.contourArea, reverse=True)
+				rect1 = cv2.minAreaRect(rects[0])
+	            		rect2 = cv2.minAreaRect(rects[1])
 
 	            		if(rect1[1][0] < rect1[1][1]): #Fix wonky angles from opencv (I think)
 	                		rect1 = (rect1[0], rect1[1], (rect1[2] + 180) * 180/3.141)
@@ -71,17 +71,17 @@ class image_converter:
 	            		else:
 	                		rect2 = (rect2[0], rect2[1], (rect2[2] + 90) * 180/3.141)
 
-                        #box = cv2.boxPoints(rect1)
-                        #box = np.int0(box)
-                        #cv2.drawContours(img,[box],-1,(0,0,255),2)
-                        #box = cv2.boxPoints(rect2)
-                        #box = np.int0(box)
-                        #cv2.drawContours(img,[box],-1,(0,0,255),2)
+                                box = cv2.boxPoints(rect1)
+                                box = np.int0(box)
+                                #cv2.drawContours(img,[box],-1,(0,0,255),2)
+                                box = cv2.boxPoints(rect2)
+                                box = np.int0(box)
+                                #cv2.drawContours(img,[box],-1,(0,0,255),2)
 
 				gateLocation = None
-	            gateAxis = None
-	            gateAngle = None                     
-	            gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
+	            		gateAxis = None
+	            		gateAngle = None                     
+	            		gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
 				cv2.circle(img,gateCenter,5,(0,255,0),3)
 
 		try:

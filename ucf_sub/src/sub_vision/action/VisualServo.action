@@ -1,0 +1,20 @@
+#goal
+int32 servotask
+
+#constants for servo task
+int32 gate = 0
+int32 pole = 1 
+---
+#result
+bool aligned
+---
+#feedback
+Header header
+int32 errorType
+
+#constants for error type
+int32 direction=0
+int32 position=1
+int32 pose=2
+
+geometry_msgs/Wrench targetWrench

@@ -7,8 +7,16 @@ def initParticles(particleNum, imageHeight, imageWidth):
 	for i in range(particleNum):	
 		particles[i][0] = random.randint(0,imageWidth)
 		particles[i][1] = random.randint(0,imageHeight)
-	
+		particles[i][2] = 0	
+
 	return particles
+
+def add_gaussian(particles):
+	noiseX = np.random.normal(0, 1, len(particles))
+	noiseY = np.random.normal(0, 1, len(particles))
+	particles[...,0] = particles[...,0]+noiseX
+	particles[...,1] = particles[...,1]+noiseY
+	return particles	
 
 # Takes in weights and returns 
 def resample_particles(curPart, desiredParticleSize):

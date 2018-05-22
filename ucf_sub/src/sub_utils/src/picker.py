@@ -19,7 +19,7 @@ class threshold_finder:
 	self.hasNewFrame = False
         self.thresholds = np.array([0,0,0,0,0,0], dtype= np.float32)
         self.bridge = CvBridge()
-	self.image_sub = rospy.Subscriber("/contoured_image", Image, self.callback)
+	self.image_sub = rospy.Subscriber("/stereo/left/image_raw", Image, self.callback)
         self.image_thresholds = rospy.Publisher("/threshold_values",numpy_msg(Floats), queue_size=10)
 
     def pick_colors(self, event, x, y, flags, frame):
@@ -37,7 +37,6 @@ class threshold_finder:
             ub = [maxb,maxg,maxr]
             print (lb, ub)
 
-	
     def callback(self,data):
 	try:
        		self.frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
