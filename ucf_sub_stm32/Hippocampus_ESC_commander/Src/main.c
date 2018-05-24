@@ -39,6 +39,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32l4xx_hal.h"
+#include "crc.h"
 #include "dma.h"
 #include "tim.h"
 #include "usart.h"
@@ -52,7 +53,9 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+uint16_t dshotData[136];
+uint16_t currentDshotOutput;
+uint16_t currentPWMOutput;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,11 +63,47 @@ void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+void setOutputData(uint16_t cmd, uint8_t tlm, uint8_t id);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim6;
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+	if(htim->Instance == TIM1)
+	{
+		currentDshotOutput++;
+		if(currentDshotOutput < 8)
+		{
+			HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, dshotData+currentDshotOutput*17, 17);
+		}
+		else
+		{
+			currentDshotOutput = 0;
+		}
+	}
+	if(htim->Instance == TIM2)
+	{
+
+	}
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM6)
+	{
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+		HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, dshotData, 17);
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -75,7 +114,11 @@ void SystemClock_Config(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	for(int i = 0; i <= 7; i++)
+	{
+		setOutputData(i,1,i);
+	}
+	currentDshotOutput = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -101,8 +144,11 @@ int main(void)
   MX_TIM1_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
+  MX_CRC_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -189,7 +235,19 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void setOutputData(uint16_t cmd, uint8_t tlm, uint8_t id){
+	cmd = cmd << 5;
+	cmd = cmd | (tlm<<4);
+	cmd = cmd | (( ((cmd&0xF000)>>12) ^ ((cmd&0x0F00)>>8) ^ ((cmd&0x00F0)>>4) )&0xF);
+	for(int i = 0; i < 16; i++){
+		if((cmd&(0x1<<(15-i)))>0){
+			dshotData[i+id*17] = 100;
+		}
+		else {
+			dshotData[i+id*17] = 50;
+		}
+	}
+}
 /* USER CODE END 4 */
 
 /**
