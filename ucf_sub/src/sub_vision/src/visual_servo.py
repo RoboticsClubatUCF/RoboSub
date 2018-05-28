@@ -4,7 +4,7 @@ from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 import particle
 from sub_vision.msg import VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult
-from scipy.optimize import minimize
+import pulp
 
 class visual_servo:
 
@@ -25,6 +25,7 @@ class visual_servo:
 			self.fx = image_geometry.fx
 			self.fy = image_geometry.fy
 			self.knownWidth = 0.0
+			self.maintainedDistance = 12
 
 	def interaction_matrix(self,coordinates):
 		u = self.lam * (coordinates[0]/coordinates[2])
@@ -32,17 +33,29 @@ class visual_servo:
 		Z = coordinates[2]
 		return np.array([[-self.lam/Z, 0, u/Z, (u*v)/self.lam,-(self.lam + (math.square(u)/self.lam)), v], [0,-self.lam/Z,v/Z, self.lam + math.square(v)/self.lam, -((u*v)/self.lam), -u]])
 
+
+	def pole_forces(self, coordinates):
+		u = self.lam * (coordinates[0]/coordinates[2])
+		v = self.lamb * (coordinates[1]/coordinates[2])
+		Z = coordinates[2]
+		x = u + self.translationUnits
+		y = v + self.translationUnits
+		return np.array([[-(x*z)/self.lam - (v*y*z)/u*self.lam], [-y/u]])
+
 	def distance_to_object(self,perWidth):
-		return (self.knownWidth * self.fx) / perWidth)
+		return (self.knownWidth * self.fx) / perWidth
 
 	def servoing(self, msg):
 		if self.goal == VisualServoGoal.pole:
 			#Find distance to pole
-			distance_to_object(self.msg[1][0])
-				#Generate Virtual Images constrained by other 5 DOF
-					#Find distance for each image
-						#Pick x that maintains distance
+			interaction = None
+			if distance_to_object(self.msg[1][0]) >= self.maintainedDistance:
+				return pole_forces(msg)
 
+			else:
+				return None
+
+		else:
 		#Find the camera position in the frame
 		cX = image_geometry.cX
 		cY = image_geometry.cY
