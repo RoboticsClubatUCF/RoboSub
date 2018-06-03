@@ -1,4 +1,4 @@
-import rospy
+import rospyself.server.start()
 import image_geometry
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
@@ -9,6 +9,8 @@ import pulp
 class visual_servo:
 
 	def __init__(self,goal):
+		self.server = actionlib.SimpleActionServer('visual_servo', VisualServoAction, self.execute, False)
+		self.server.start()
 		self.particleNum = 1000
 		self.imageWidth = 640
 		self.imageHeight = 480
@@ -17,6 +19,7 @@ class visual_servo:
 		self.lam = 1
 		self.message = Wrench()
 		self.goal = goal
+		self.response = TrackObjectResult()
 		self.box_sub = rospy.Subscriber("/object_bounding_box", numpy_msg(Floats), self.servoing)
 		if goal == VisualServoGoal.gate:
 			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
@@ -26,6 +29,7 @@ class visual_servo:
 			self.fy = image_geometry.fy
 			self.knownWidth = 0.0
 			self.maintainedDistance = 12
+			self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
 
 	def interaction_matrix(self, dof, u, v, Z):
 		int_matrix = np.array([[-self.lam/Z, 0, u/Z, (u*v)/self.lam,-(self.lam + (math.square(u)/self.lam)), v], [0,-self.lam/Z,v/Z, self.lam + math.square(v)/self.lam, -((u*v)/self.lam), -u]])
@@ -45,7 +49,14 @@ class visual_servo:
 
 			if distance_to_object(self.coordinates[1][0]-self.coordinates[0][0]) >= self.maintainedDistance:
 				int_matrix = interaction_matrix([1,5], u,v,Z)
-				return np.matmul(np.linalg.pinv(int_matrix), coordinates+self.translationUnits)
+				forces = np.matmul(np.linalg.pinv(int_matrix), coordinates+self.translationUnits)
+				message.force.x = None
+				message.force.y = forces[0]
+				message.force.z = None
+				message.torque.x = None
+				message.torque.y = None
+				message.torque.z = forces[1]
+				thrusterPublisher.publish(message)
 
 			else:
 				return None
@@ -85,6 +96,9 @@ class visual_servo:
 					message.torque.y = newCommand[4]
 					message.torque.z = newCommand[5]
 					thrusterPublisher.publish(message)
+			else:
+				self.response.success = True
+				self.server.set_succeeded(self.response)
 
 def start_servo(self, goal):
 	vs = visual_servo(goal)
