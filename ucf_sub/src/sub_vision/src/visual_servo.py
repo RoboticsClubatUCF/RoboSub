@@ -25,10 +25,13 @@ class visual_servo:
 			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
 			self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
 		elif goal == VisualServoGoal.pole:
+			self.imuSubscriber = rospy.Subscriber("/imu/data", ros_imu_msg, self.initImu)
+			self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
 			self.fx = image_geometry.fx
 			self.fy = image_geometry.fy
 			self.knownWidth = 0.0
 			self.maintainedDistance = 12
+			self.speed = 1
 			self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
 
 	def interaction_matrix(self, dof, u, v, Z):
@@ -37,6 +40,14 @@ class visual_servo:
 
 	def distance_to_object(self,perWidth):
 		return (self.knownWidth * self.fx) / perWidth
+
+	def initIMU(self, msg);
+		self.orientationX = msg.orientation.x
+		self.orientationY = msg.orientation.y
+		self.orientationZ = msg.orientation.z
+
+	def initDepth(self, msg):
+		self.Depth = self.msg
 
 	def servoing(self, msg):
 		if self.goal == VisualServoGoal.pole:
@@ -50,11 +61,11 @@ class visual_servo:
 			if distance_to_object(self.coordinates[1][0]-self.coordinates[0][0]) >= self.maintainedDistance:
 				int_matrix = interaction_matrix([1,5], u,v,Z)
 				forces = np.matmul(np.linalg.pinv(int_matrix), coordinates+self.translationUnits)
-				message.force.x = None
+				message.force.x = self.speed
 				message.force.y = forces[0]
-				message.force.z = None
-				message.torque.x = None
-				message.torque.y = None
+				message.force.z = self.Depth
+				message.torque.x = self.orientationX
+				message.torque.y = self.orientationY
 				message.torque.z = forces[1]
 				thrusterPublisher.publish(message)
 
@@ -62,7 +73,7 @@ class visual_servo:
 				return None
 
 		else:
-		#Find the camera position in the frame
+			#Find the camera position in the frame
 			cX = image_geometry.cX
 			cY = image_geometry.cY
 
