@@ -1,4 +1,4 @@
-import rospyself.server.start()
+#import rospyself.server.start()
 import image_geometry
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
@@ -24,7 +24,7 @@ class visual_servo:
 		if goal == VisualServoGoal.gate:
 			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
 			self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
-		elif goal == VisualServoGoal.pole
+		elif goal == VisualServoGoal.pole:
 			self.fx = image_geometry.fx
 			self.fy = image_geometry.fy
 			self.knownWidth = 0.0
