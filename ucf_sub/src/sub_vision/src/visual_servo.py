@@ -1,12 +1,13 @@
-#import rospyself.server.start()
+import rospy
 import image_geometry
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 import particle
 import vision_manager.msg
 from sub_vision.msg import VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult
+from geometry_msgs.msg import Wrench
 
-import pulp
+
 
 class visual_servo:
 
@@ -44,9 +45,14 @@ class visual_servo:
 
 		self.box_sub = rospy.Subscriber("/object_bounding_box", numpy_msg(Floats), self.servoing)
 		
+		self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
+		self.thruster_sub = rospy.Subscriber("/autonomyWrench", Wrench, republishWrench)
+		self.desired_wrench = rospy.Publisher("/desiredThrustWrench", Wrench)
+
 		if goal == VisualServoGoal.gate:
 			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
-			self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
+
+
 		
 		elif goal == VisualServoGoal.pole:
 			self.startYaw = None
@@ -58,7 +64,6 @@ class visual_servo:
 			self.knownWidth = 0.0
 			self.maintainedDistance = 12
 			self.speed = 1
-			self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
 
 	def feedbackCb(self,feedback):
 		feedback.fixType = lost:
@@ -79,6 +84,9 @@ class visual_servo:
 		self.orientationX = msg.orientation.x
 		self.orientationY = msg.orientation.y
 		self.orientationZ = msg.orientation.z
+
+	def republishWrench(self, msg):
+		self.desired_wrench.publish(msg)
 
 	def initDepth(self, msg):
 		self.Depth = self.msg
@@ -102,7 +110,7 @@ class visual_servo:
 					message.torque.x = self.orientationX
 					message.torque.y = self.orientationY
 					message.torque.z = forces[1]
-					thrusterPublisher.publish(message)
+					self.thruster_pub.publish(message)
 
 			else:
 				self.response.success = True
@@ -155,4 +163,4 @@ def start_servo(self, goal):
 
 if __name__== "__main__":
 	self.server = actionlib.SimpleActionServer('visual_servo', VisualServoAction, start_servo, False)
-        self.server.start()
+    self.server.start()
