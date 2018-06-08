@@ -24,7 +24,7 @@ class locate(smach.State):
         vision_client.wait_for_result()
         found = vision_client.get_result()
 
-		if found.success:
+		if found:
             rospy.loginfo("Pole located.")
             return 'success'
 
@@ -34,8 +34,6 @@ class locate(smach.State):
 class align(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted','success', 'failure']):
-        self.vision_client = actionlib.SimpleActionClient('track_object')
-        self.vision_client.wait_for_server()
         self.servo_client = actionlib.SimpleActionClient('visual_servo')
         self.servo_client.wait_for_server()
 
@@ -47,14 +45,14 @@ class align(smach.State):
         	goal.objectType = goal.pole
             self.vision_client.send_goal(goal)
 
-            servoGoal = visual_servo.msg.TrackObjectGoal()
-            servoGoal.objectType = goal.align
-            self.servo_client.send_goal(servoGoal)
+            goal = visual_servo.msg.TrackObjectGoal()
+            goal.servotask = goal.align
+            self.client.send_goal(servoGoal)
 
-            servo_client.wait_for_result()
-    		aligned = servo_client.get_result():
+            client.wait_for_result()
+    		aligned = client.get_result():
 	        
-            if aligned.success:
+            if aligned:
                 return 'success'
                        
             else:
@@ -64,27 +62,21 @@ class align(smach.State):
 class drift(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
-        self.vision_client = actionlib.SimpleActionClient('track_object')
-        self.vision_client.wait_for_server()
-        self.servo_client = actionlib.SimpleActionClient('visual_servo')
-        self.servo_client.wait_for_server()                
+        self.client = actionlib.SimpleActionClient('visual_servo')
+        self.client.wait_for_server()                
 
     def execute(self, userdata):
         rospy.loginfo("Drifting")
         start = rospy.Time(0)
 
-        goal = vision_manager.msg.TrackObjectGoal()
-        goal.objectType = goal.pole
-        self.vision_client.send_goal(goal)
+        goal = visual_servo.msg.TrackObjectGoal()
+        goal.servotask = goal.drift
+        self.client.send_goal(pole)
 
-        servoGoal = visual_servo.msg.TrackObjectGoal()
-        servoGoal.objectType = goal.pole
-        self.servo_client.send_goal(pole)
-
-        servo_client.wait_for_result()
-        drifted = servo_client.get_result():
+        client.wait_for_result()
+        drifted = client.get_result():
         
-        if drifted.success: 
+        if drifted: 
             rospy.loginfo("Drifting complete!")
             return 'sucess'
     

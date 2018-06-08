@@ -24,7 +24,7 @@ class locate(smach.State):
 		self.vision_client.wait_for_result()
 		result = vision_client.get_result()
 
-		if result.found:
+		if result:
 			rospy.loginfo("Gate located.")
 			return 'success'
 
@@ -34,20 +34,20 @@ class locate(smach.State):
 class align(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure', 'qualified'])
-		self.servo_client = actionlib.SimpleActionClient('visual_servo')
-        self.servo_client.wait_for_server()
+		self.client = actionlib.SimpleActionClient('visual_servo')
+        self.client.wait_for_server()
 
 	def execute(self, userdata):
 		rospy.loginfo("Aligning the gate.")
 		start = rospy.Time(0)
 		goal = visual_servo.TrackObjectGoal()
-		goal.objectType = goal.aligned
-		self.servo_client.send_goal(goal)
+		goal.servotask = goal.gate
+		self.client.send_goal(goal)
 
-		self.servo_client.wait_for_result()
-		result = servo_client.get_result()
+		self.client.wait_for_result()
+		result = client.get_result()
 
-		if result.success:
+		if result:
 			return 'success'
 		
 		else: 
@@ -62,10 +62,14 @@ class through(smach.State):
 
 	def execute(self, userdate):
 		rospy.loginfo("Going through the gate")
+		goal = visual_servo.TrackObjectGoal()
+		goal.servotask = goal.gate
+		self.client.send_goal(goal)
+
 		self.client.wait_for_result()
 		result = vision_client.get_result()
 
-		if not result.success:
+		if not result:
 
 			message.force.x = 1
 			message.force.y = 0
