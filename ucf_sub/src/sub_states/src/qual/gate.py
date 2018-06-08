@@ -21,12 +21,13 @@ class locate(smach.State):
 		goal.objectType = goal.startGate
 		self.vision_client.send_goal(goal)
 
-		self.client.wait_for_result()
+		self.vision_client.wait_for_result()
 		result = vision_client.get_result()
 
 		if result.found:
 			rospy.loginfo("Gate located.")
 			return 'success'
+
 		else:
 			return 'failure'
 
@@ -40,16 +41,17 @@ class align(smach.State):
 		rospy.loginfo("Aligning the gate.")
 		start = rospy.Time(0)
 		goal = visual_servo.TrackObjectGoal()
-		goal.objectType = goal.gate
+		goal.objectType = goal.aligned
 		self.servo_client.send_goal(goal)
 
-		self.client.wait_for_result()
-		result = vision_client.get_result()
+		self.servo_client.wait_for_result()
+		result = servo_client.get_result()
 
 		if result.success:
 			return 'success'
 		
-		return 'failure'
+		else: 
+			return 'failure'
 
 class through(smach.State):
 	def __init__(self):
@@ -63,18 +65,19 @@ class through(smach.State):
 		self.client.wait_for_result()
 		result = vision_client.get_result()
 
-		if result.found
+		if not result.success:
 
-		while vision_manager.msg.TrackObjectResult().found:
 			message.force.x = 1
 			message.force.y = 0
 			message.force.z = 0
 			message.torque.x = 0
 			message.torque.y = 0
 			message.torque.z = 0
+			return 'failure'
 
-		
-		if qualStatus.poleDone:
-			return 'qualified'
 		else:
-			return 'success'
+			#Todo: Figure out where to put this
+			if qualStatus.poleDone:
+				return 'qualified'
+			else:
+				return 'success'

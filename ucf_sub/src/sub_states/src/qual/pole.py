@@ -13,7 +13,6 @@ class locate(smach.State):
         smach.State.__init__(self, outcomes=['preempted','success', 'failure'])
         self.vision_client = actionlib.SimpleActionClient('track_object')
         self.vision_client.wait_for_server()
-        self.listener = tf.TransformListener()
 
 	def execute(self, userdate):
         rospy.loginfo("Locating the pole.")
@@ -22,11 +21,10 @@ class locate(smach.State):
         goal.objectType = goal.pole
         self.vision_client.send_goal(goal)
 
-        found = vision_manager.msg.TrackObjectResult()
+        vision_client.wait_for_result()
+        found = vision_client.get_result()
 
-		if found:
-	       found = vision_manager.msg.TrackObjectResult()
-
+		if found.success:
             rospy.loginfo("Pole located.")
             return 'success'
 
@@ -38,7 +36,6 @@ class align(smach.State):
 		smach.State.__init__(self, outcomes=['preempted','success', 'failure']):
         self.vision_client = actionlib.SimpleActionClient('track_object')
         self.vision_client.wait_for_server()
-        self.listener = tf.TransformListener()
         self.servo_client = actionlib.SimpleActionClient('visual_servo')
         self.servo_client.wait_for_server()
 
@@ -51,17 +48,17 @@ class align(smach.State):
             self.vision_client.send_goal(goal)
 
             servoGoal = visual_servo.msg.TrackObjectGoal()
-            servoGoal.objectType = goal.pole
-            self.servo_client.send_goal(gate)
+            servoGoal.objectType = goal.align
+            self.servo_client.send_goal(servoGoal)
 
-    		while True:
-                if visual_servo.msg.TrackObjectResult().aligned:
-	              return 'success'
+            servo_client.wait_for_result()
+    		aligned = servo_client.get_result():
+	        
+            if aligned.success:
+                return 'success'
                        
-                    else:
-                        pass
-
-            return 'failure'
+            else:
+                return 'failure'
 
 
 class drift(smach.State):
@@ -69,7 +66,6 @@ class drift(smach.State):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
         self.vision_client = actionlib.SimpleActionClient('track_object')
         self.vision_client.wait_for_server()
-        self.listener = tf.TransformListener()
         self.servo_client = actionlib.SimpleActionClient('visual_servo')
         self.servo_client.wait_for_server()                
 
@@ -85,11 +81,13 @@ class drift(smach.State):
         servoGoal.objectType = goal.pole
         self.servo_client.send_goal(pole)
 
-        while True:
-            if visual_servo.msg.TrackObjectResult().drifted:
-                return 'sucess'
-            else:
-                pass
-
+        servo_client.wait_for_result()
+        drifted = servo_client.get_result():
+        
+        if drifted.success: 
+            rospy.loginfo("Drifting complete!")
+            return 'sucess'
+    
+        else:
             return failure
     
