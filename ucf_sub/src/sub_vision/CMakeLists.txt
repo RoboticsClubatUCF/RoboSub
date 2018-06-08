@@ -29,6 +29,7 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
    action
    FILES
    TrackObject.action
+   VisualServo.action
  )
 
 ## Generate added messages and services with any dependencies listed here

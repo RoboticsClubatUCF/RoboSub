@@ -3,15 +3,15 @@ import image_geometry
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 import particle
-import vision_manager.msg
-from sub_vision.msg import VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult
+import vision_manager
+from sub_vision.msg import VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult, TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult
 from geometry_msgs.msg import Wrench
-
+import actionlib
 
 
 class visual_servo:
 
-	def __init__(self,goal):
+	def __init__(self):
 		self.server = actionlib.SimpleActionServer('visual_servo', VisualServoAction, self.execute, False)
 		self.server.start()
 		
@@ -26,48 +26,19 @@ class visual_servo:
 		
 		self.message = Wrench()
 		
-		self.goal = goal
 		self.response = TrackObjectResult()
 
-		self.vision_client = actionlib.SimpleActionClient('track_object')
+		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
 		self.vision_client.wait_for_server()
 
-
-		if goal.servotask = gate: 
-        	goal = vision_manager.msg.TrackObjectGoal()
-        	goal.objectType = goal.gate
-        	self.vision_client.send_goal(goal, feedbackCb=feedbackCb)		
-
-        else:
-        	goal = vision_manager.msg.TrackObjectGoal()
-        	goal.objectType = goal.pole
-        	self.vision_client.send_goal(goal, feedbackCb=feedbackCb)
-
-		self.box_sub = rospy.Subscriber("/object_bounding_box", numpy_msg(Floats), self.servoing)
 		
-		self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
-		self.thruster_sub = rospy.Subscriber("/autonomyWrench", Wrench, republishWrench)
-		self.desired_wrench = rospy.Publisher("/desiredThrustWrench", Wrench)
+                self.box_sub = rospy.Subscriber("/object_bounding_box", numpy_msg(Floats), self.servoing)
+                
+                self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
+                self.thruster_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
+                self.desired_wrench = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1)
 
-		if goal == VisualServoGoal.gate:
-			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
 
-
-		
-		elif goal == VisualServoGoal.pole:
-			self.startYaw = None
-			self.FirstIMUCall = True
-			self.imuSubscriber = rospy.Subscriber("/imu/data", ros_imu_msg, self.initImu)
-			self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
-			self.fx = image_geometry.fx
-			self.fy = image_geometry.fy
-			self.knownWidth = 0.0
-			self.maintainedDistance = 12
-			self.speed = 1
-
-	def feedbackCb(self,feedback):
-		feedback.fixType = lost:
-			self.objectLost = True
 
 	def interaction_matrix(self, dof, u, v, Z):
 		int_matrix = np.array([[-self.lam/Z, 0, u/Z, (u*v)/self.lam,-(self.lam + (math.square(u)/self.lam)), v], [0,-self.lam/Z,v/Z, self.lam + math.square(v)/self.lam, -((u*v)/self.lam), -u]])
@@ -76,7 +47,7 @@ class visual_servo:
 	def distance_to_object(self,perWidth):
 		return (self.knownWidth * self.fx) / perWidth
 
-	def initIMU(self, msg);
+	def initIMU(self, msg):
 		if self.FirstIMUCall:
 			self.FirstIMUCall = False
 			self.startYaw = msg.orientation.z
@@ -90,6 +61,28 @@ class visual_servo:
 
 	def initDepth(self, msg):
 		self.Depth = self.msg
+
+	def execute(self,goal):
+		if goal.servotask == gate: 
+                	goal = vision_manager.msg.TrackObjectGoal()
+                	goal.objectType = goal.gate
+                	self.vision_client.send_goal(goal)              
+			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
+
+                elif goal == VisualServoGoal.pole:
+                        goal = vision_manager.msg.TrackObjectGoal()
+        		goal.objectType = goal.pole
+        		self.vision_client.send_goal(goal)
+			self.startYaw = None
+                        self.FirstIMUCall = True
+                        self.imuSubscriber = rospy.Subscriber("/imu/data", ros_imu_msg, self.initImu)
+                        self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
+                        self.fx = image_geometry.fx
+                        self.fy = image_geometry.fy
+                        self.knownWidth = 0.0
+                        self.maintainedDistance = 12
+                        self.speed = 1
+
 
 	def servoing(self, msg):
 		if self.goal == VisualServoGoal.pole:
@@ -156,11 +149,9 @@ class visual_servo:
 				self.response.success = True
 				self.server.set_succeeded(self.response)
 
-def start_servo(self, goal):
-	vs = visual_servo(goal)
-	rospy.init_node('visual_servo', anonymous=False)
-	rospy.spin()
 
 if __name__== "__main__":
-	self.server = actionlib.SimpleActionServer('visual_servo', VisualServoAction, start_servo, False)
-    self.server.start()
+        rospy.init_node('visual_servo', anonymous=False)
+	vs = visual_servo()
+        rospy.spin()
+

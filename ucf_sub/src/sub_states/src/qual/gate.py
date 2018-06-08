@@ -1,23 +1,21 @@
 #!/user/bin/env python
+import smach
 import rospy
-import tf
 import actionlib
 import actionlib_msgs.msg
-import vision_manager.msg
-import visual_servo.msg
-import visual_servo as vs
+from sub_vision.msg import TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult, VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult
 from geometry_msgs.msg import Wrench
 
 class locate(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['preempted','success', 'failure', 'qualified'])
-		self.vision_client = actionlib.SimpleActionClient('track_object')
+		smach.State.__init__(self, outcomes=['preempted','success', 'failure'])
+		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
 		self.vision_client.wait_for_server()
 
 	def execute(self, userdata):
 		rospy.loginfo("Locating the gate.")
 		start = rospy.Time(0)
-		goal = vision_manager.msg.TrackObjectGoal()
+		goal = TrackObjectGoal()
 		goal.objectType = goal.startGate
 		self.vision_client.send_goal(goal)
 
@@ -33,14 +31,14 @@ class locate(smach.State):
 
 class align(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure', 'qualified'])
-		self.client = actionlib.SimpleActionClient('visual_servo')
-        self.client.wait_for_server()
+		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
+		self.client = actionlib.SimpleActionClient('visual_servo', VisualServoAction)
+        	self.client.wait_for_server()
 
 	def execute(self, userdata):
 		rospy.loginfo("Aligning the gate.")
 		start = rospy.Time(0)
-		goal = visual_servo.TrackObjectGoal()
+		goal = VisualServoGoal()
 		goal.servotask = goal.gate
 		self.client.send_goal(goal)
 
@@ -55,14 +53,14 @@ class align(smach.State):
 
 class through(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure', 'qualified'])
+		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
 		self.message = Wrench()
-		self.vision_client = actionlib.SimpleActionClient('track_object')
+		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
 		self.vision_client.wait_for_server()
 
 	def execute(self, userdate):
 		rospy.loginfo("Going through the gate")
-		goal = visual_servo.TrackObjectGoal()
+		goal = TrackObjectGoal()
 		goal.servotask = goal.gate
 		self.client.send_goal(goal)
 
@@ -80,8 +78,4 @@ class through(smach.State):
 			return 'failure'
 
 		else:
-			#Todo: Figure out where to put this
-			if qualStatus.poleDone:
-				return 'qualified'
-			else:
-				return 'success'
+			pass
