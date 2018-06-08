@@ -31,7 +31,6 @@ class visual_servo:
 		self.vision_client = actionlib.SimpleActionClient('track_object')
 		self.vision_client.wait_for_server()
 
-		self.objectLost = False
 
 		if goal.servotask = gate: 
         	goal = vision_manager.msg.TrackObjectGoal()
@@ -50,6 +49,8 @@ class visual_servo:
 			self.thrusterPublisher = rospy.Publisher('desiredThrustWrench', Wrench, queue_size=1)
 		
 		elif goal == VisualServoGoal.pole:
+			self.startYaw = None
+			self.FirstIMUCall = True
 			self.imuSubscriber = rospy.Subscriber("/imu/data", ros_imu_msg, self.initImu)
 			self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
 			self.fx = image_geometry.fx
@@ -71,6 +72,10 @@ class visual_servo:
 		return (self.knownWidth * self.fx) / perWidth
 
 	def initIMU(self, msg);
+		if self.FirstIMUCall:
+			self.FirstIMUCall = False
+			self.startYaw = msg.orientation.z
+
 		self.orientationX = msg.orientation.x
 		self.orientationY = msg.orientation.y
 		self.orientationZ = msg.orientation.z
@@ -80,7 +85,7 @@ class visual_servo:
 
 	def servoing(self, msg):
 		if self.goal == VisualServoGoal.pole:
-			if self.objectLost == False
+			if self.orientationZ - self.startYaw < 270:
 				#Find distance to pole
 				interaction = None
 				coordinates = projectPixelTo3dRay(msg[0])
@@ -100,9 +105,6 @@ class visual_servo:
 					thrusterPublisher.publish(message)
 
 			else:
-	        	goal = vision_manager.msg.TrackObjectGoal()
-	        	goal.objectType = goal.gate
-    	    	self.vision_client.send_goal(goal, feedbackCb=feedbackCb)		
 				self.response.success = True
 				self.server.set_succeeded(self.response)
 
