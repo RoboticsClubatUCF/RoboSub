@@ -56,22 +56,23 @@ class GateFinder:
                     rects.append(contour)
 
         feedback = TrackObjectFeedback()
-        if len(rects) > 1:
-            rects = greatestNAreaContours(rects, 2)
-            rect1 = cv2.minAreaRect(rects[0])
-            rect2 = cv2.minAreaRect(rects[1])
 
-            if(rect1[1][0] < rect1[1][1]): #Fix wonky angles from opencv (I think)
-                rect1[2] = (rect1[2] + 180) * 180/3.141
-            else:
-                rect1[2] = (rect1[2] + 90) * 180/3.141
+	if len(rects) > 1:
+	        rects = greatestNAreaContours(rects, 2)
+        	rect1 = cv2.minAreaRect(rects[0])
+            	rect2 = cv2.minAreaRect(rects[1])
 
-            if(rect2[1][0] < rect2[1][1]):
-                rect2[2] = (rect2[2] + 180) * 180/3.141
-            else:
-                rect2[2] = (rect2[2] + 90) * 180/3.141
+            	if(rect1[1][0] < rect1[1][1]): #Fix wonky angles from opencv (I think)
+                	rect1[2] = (rect1[2] + 180) * 180/3.141
+            	else:
+                	rect1[2] = (rect1[2] + 90) * 180/3.141
 
-		gateCenter = (int((rect1[0][0] + rect2[0][0]/2), int((rect1[0][1] + rect2[0][1])/2))
+            	if(rect2[1][0] < rect2[1][1]):
+                	rect2[2] = (rect2[2] + 180) * 180/3.141
+        	else:
+                	rect2[2] = (rect2[2] + 90) * 180/3.141
+
+		gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
 		feedback.center = gateCenter
 		return feedback
 

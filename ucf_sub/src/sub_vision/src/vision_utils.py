@@ -3,10 +3,9 @@ import cv2
 
 import heapq
 
-class Thresholds:
-    def __init__(self, upperThresh=(255,255,255), lowerThresh=(0,0,0)):
-        self.upper = upperThresh
-        self.lower = lowerThresh
+def Thresholds(upperThresh=(255,255,255), lowerThresh=(0,0,0)):
+	upper = upperThresh
+        lower = lowerThresh
 
 def contourCircularity(contour):
     perimeter = cv2.arcLength(contour, True)
