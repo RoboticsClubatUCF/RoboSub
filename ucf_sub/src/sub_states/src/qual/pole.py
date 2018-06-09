@@ -14,6 +14,7 @@ class locate(smach.State):
 	def execute(self, userdate):
         	rospy.loginfo("Locating the pole.")
         	start = rospy.Time(0)
+
         	goal = TrackObjectGoal()
         	goal.objectType = goal.pole
         	self.client.send_goal(goal)
@@ -37,10 +38,6 @@ class align(smach.State):
         def execute(self, userdata):
         	rospy.loginfo("Aligning with the pole.")
             	start = rospy.Time(0)
-		
-            	goal = TrackObjectGoal()
-        	goal.objectType = goal.align
-            	self.client.send_goal(goal)
 
             	goal = TrackObjectGoal()
             	goal.servotask = goal.align
@@ -48,10 +45,10 @@ class align(smach.State):
 
             	self.client.wait_for_result()
     		aligned = self.client.get_result()
-	        
+
             	if aligned.aligned:
                 	return 'success'
-                       
+
             	else:
                 	return 'failure'
 
@@ -60,7 +57,7 @@ class drift(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
         	self.client = actionlib.SimpleActionClient('visual_servo', VisualServoAction)
-        	self.client.wait_for_server()                
+        	self.client.wait_for_server()
 
     	def execute(self, userdata):
     		rospy.loginfo("Drifting")
@@ -72,11 +69,11 @@ class drift(smach.State):
 
         	self.client.wait_for_result()
         	drifted = self.client.get_result()
-        
-        	if drifted.aligned: 
+
+        	if drifted.aligned:
             		rospy.loginfo("Drifting complete!")
             		return 'sucess'
-    
+
         	else:
             		return 'failure'
-    
+

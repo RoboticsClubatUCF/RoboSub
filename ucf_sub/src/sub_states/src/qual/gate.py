@@ -15,6 +15,7 @@ class locate(smach.State):
 	def execute(self, userdata):
 		rospy.loginfo("Locating the gate.")
 		start = rospy.Time(0)
+
 		goal = TrackObjectGoal()
 		goal.objectType = goal.startGate
 		self.client.send_goal(goal)
@@ -38,6 +39,7 @@ class align(smach.State):
 	def execute(self, userdata):
 		rospy.loginfo("Aligning the gate.")
 		start = rospy.Time(0)
+
 		goal = VisualServoGoal()
 		goal.servotask = goal.gate
 		self.client.send_goal(goal)
@@ -47,8 +49,8 @@ class align(smach.State):
 
 		if result.aligned:
 			return 'success'
-		
-		else: 
+
+		else:
 			return 'failure'
 
 class through(smach.State):
@@ -60,6 +62,7 @@ class through(smach.State):
 
 	def execute(self, userdate):
 		rospy.loginfo("Going through the gate")
+
 		goal = TrackObjectGoal()
 		goal.objectType = goal.startGate
 		self.client.send_goal(goal)

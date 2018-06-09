@@ -2,12 +2,7 @@
 
 import rospy
 import smach
-import smach_ros
 
-import actionlib
-import actionlib_msgs.msg
-
-#import monitor
 import gate
 import pole
 
@@ -21,6 +16,8 @@ class SubStates:
 		self.tasks = smach.StateMachine(outcomes=['POLE', 'GATE', 'preempted', self.gate, self.pole])
 
 		with self.tasks:
+
+			smach.StateMachine.add('Start', self.gate, transitions={'POLE':self.pole, 'GATE':self.gate})
 
 			with self.gate:
 				smach.StateMachine.add('LOCATE', gate.locate(),
@@ -53,9 +50,6 @@ class SubStates:
 						       transitions={'preempted':'preempted',
 								    'success': 'GATE',
 								    'failure': 'LOCATE'})
-
-			smach.StateMachine.add('Start', self.gate, transitions={'POLE':self.pole, 'GATE':self.gate})
-		
 
 if __name__ == '__main__':
 	rospy.init_node('hippo_sm')
