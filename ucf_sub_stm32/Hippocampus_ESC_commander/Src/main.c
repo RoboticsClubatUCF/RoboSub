@@ -53,8 +53,12 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+int16_t motorSettings[8];
+
 uint16_t dshotData[136];
 uint16_t currentDshotOutput;
+
+uint32_t pwmData[8];
 uint16_t currentPWMOutput;
 
 uint8_t pcRxData;
@@ -69,7 +73,8 @@ void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void setOutputData(uint16_t cmd, uint8_t tlm, uint8_t id);
+void setDshotData(int16_t cmd, uint8_t tlm, uint8_t id);
+void setPwmData(int16_t cmd, uint8_t tlm, uint8_t id);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -130,7 +135,7 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
 			else
 				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
-			htim2.Instance->CCR1 = 160000;
+			htim2.Instance->CCR1 = pwmData[currentPWMOutput];
 		}
 		else
 		{
@@ -158,7 +163,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
-		htim2.Instance->CCR1 = 80000;
+		htim2.Instance->CCR1 = pwmData[currentPWMOutput];
 		HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);
 	}
 }
@@ -189,11 +194,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 					}
 				}
 				uint8_t checksum = 0;
-				for(int i = 0; i < pcRxDataPosition-1; i++)
+				for(int i = 1; i < pcRxDataPosition-1; i++)
 				{
 					checksum += pcRxBuffer[i];
 				}
-				//HAL_UART_Transmit_IT(&huart2, &checksum, 1);
+				if(checksum == pcRxBuffer[pcRxDataPosition-1])
+				{
+					HAL_UART_Transmit_IT(&huart2, &checksum, 1);
+					if(pcRxDataPosition == 18)
+					{
+						for(int i = 0; i < 8; i++)
+						{
+							setDshotData((pcRxBuffer[i*2+2] << 8) | pcRxBuffer[i*2+1], 0, i);
+							setPwmData((pcRxBuffer[i*2+2] << 8) | pcRxBuffer[i*2+1], 0, i);
+						}
+					}
+				}
 			}
 			pcRxDataPosition = 0; //Reset buffer
 		}
@@ -208,10 +224,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 		}
 		else
 		{
-			//Buffer is full. Do something?
+			//Buffer is full. Reset
+			pcRxDataPosition = 0;
+			HAL_UART_Receive_IT(&huart2, &pcRxData, 1);
 		}
 	}
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart)
+{
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
+	if((huart->Instance == USART2) && ((huart->ErrorCode & HAL_UART_ERROR_ORE) != RESET))
+	{
+		HAL_UART_Receive_IT(&huart2, &pcRxData, 1);
+	}
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
 }
 /* USER CODE END 0 */
 
@@ -223,9 +251,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	for(int i = 0; i<=7; i++)
+	{
+		motorSettings[i] = 0;
+	}
+
 	for(int i = 0; i <= 7; i++)
 	{
-		setOutputData(i,1,i);
+		setDshotData(0,0,i);
+		setPwmData(0, 0, i);
 	}
 	currentDshotOutput = 0;
 	currentPWMOutput = 0;
@@ -355,16 +389,41 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void setOutputData(uint16_t cmd, uint8_t tlm, uint8_t id){
-	cmd = cmd << 5;
-	cmd = cmd | (tlm<<4);
-	cmd = cmd | (( ((cmd&0xF000)>>12) ^ ((cmd&0x0F00)>>8) ^ ((cmd&0x00F0)>>4) )&0xF);
-	for(int i = 0; i < 16; i++){
-		if((cmd&(0x1<<(15-i)))>0){
-			dshotData[i+id*17] = 100;
+void setDshotData(int16_t cmd, uint8_t tlm, uint8_t id){
+	if(id<8){
+		//All stop is 0
+		//Forward is 1048-2047
+		//Backward is 48-1047
+		if(cmd > 0){
+			cmd = (cmd>>5) + 1048;
+			if(cmd > 2047) cmd = 2047;
+		} else if(cmd < 0) {
+			cmd = ((-cmd)>>5) + 48;
+			if(cmd > 1047) cmd = 1047;
 		}
-		else {
-			dshotData[i+id*17] = 50;
+
+		cmd = cmd << 5;
+		cmd = cmd | (tlm<<4);
+		cmd = cmd | (( ((cmd&0xF000)>>12) ^ ((cmd&0x0F00)>>8) ^ ((cmd&0x00F0)>>4) )&0xF);
+		for(int i = 0; i < 16; i++){
+			if((cmd&(0x1<<(15-i)))>0){
+				dshotData[i+id*17] = 100;
+			}
+			else {
+				dshotData[i+id*17] = 50;
+			}
+		}
+	}
+}
+void setPwmData(int16_t cmd, uint8_t tlm, uint8_t id){
+	//All stop is 1.5ms -> 120,000 counts
+	//Full reverse is 1ms -> 80,000 counts
+	//Flank is 2ms -> 160,000 counts
+	if(id < 8){
+		int32_t counts = (cmd * 5/4) + 120000;
+		if(tlm == 0)
+		{
+			pwmData[id] = counts;
 		}
 	}
 }
