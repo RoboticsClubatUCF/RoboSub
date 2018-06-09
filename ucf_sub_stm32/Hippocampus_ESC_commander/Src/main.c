@@ -56,6 +56,12 @@
 uint16_t dshotData[136];
 uint16_t currentDshotOutput;
 uint16_t currentPWMOutput;
+
+uint8_t pcRxData;
+uint8_t pcRxDataPosition;
+uint8_t pcRxBuffer[50];
+
+uint8_t escRxBuffer[10];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -81,6 +87,22 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 		currentDshotOutput++;
 		if(currentDshotOutput < 8)
 		{
+			//Set multiplexer state
+			if((currentDshotOutput&0x01)!= 0)
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
+			else
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
+
+			if((currentDshotOutput&0x02)!= 0)
+				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+			else
+				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+
+			if((currentDshotOutput&0x04)!= 0)
+				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
+			else
+				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+
 			HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, dshotData+currentDshotOutput*17, 17);
 		}
 		else
@@ -90,7 +112,32 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 	}
 	if(htim->Instance == TIM2)
 	{
+		currentPWMOutput++;
+		if(currentPWMOutput < 8)
+		{
+			//Set multiplexer state
+			if((currentPWMOutput&0x01)!= 0)
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
+			else
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
 
+			if((currentPWMOutput&0x02)!= 0)
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET);
+			else
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
+
+			if((currentPWMOutput&0x04)!= 0)
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
+			else
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
+			htim2.Instance->CCR1 = 160000;
+		}
+		else
+		{
+			currentPWMOutput = 0;
+			htim2.Instance->CCR1 = 0;
+			HAL_TIM_PWM_Stop_IT(&htim2, TIM_CHANNEL_1);
+		}
 	}
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
 }
@@ -99,10 +146,72 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM6)
 	{
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+		//HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
 		HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, dshotData, 17);
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+		//HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
 	}
+	if(htim->Instance == TIM7)
+	{
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
+		htim2.Instance->CCR1 = 80000;
+		HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);
+	}
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
+{
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+	if(huart->Instance == USART1)
+	{
+
+	}
+	if(huart->Instance == USART2)
+	{
+		if(pcRxData == 0){
+			//Process packet
+			uint8_t nextSubstitution = pcRxBuffer[0];
+			if(nextSubstitution <= pcRxDataPosition) //Make sure the substitution is inside the buffer
+			{
+				for(int i = 0; i < pcRxDataPosition; i++) //Iterate through the buffer
+				{
+					if(i == nextSubstitution){
+						nextSubstitution += pcRxBuffer[i];
+						if(nextSubstitution >= pcRxDataPosition)
+						{
+							//nextSubstitution is outside the data buffer so do something
+						}
+						pcRxBuffer[i] = 0;
+					}
+				}
+				uint8_t checksum = 0;
+				for(int i = 0; i < pcRxDataPosition-1; i++)
+				{
+					checksum += pcRxBuffer[i];
+				}
+				//HAL_UART_Transmit_IT(&huart2, &checksum, 1);
+			}
+			pcRxDataPosition = 0; //Reset buffer
+		}
+		else
+		{
+			pcRxBuffer[pcRxDataPosition] = pcRxData; //put byte in the buffer
+			pcRxDataPosition++; //Next byte goes in next buffer position
+		}
+		if(pcRxDataPosition < 50) //We can get another byte
+		{
+			HAL_UART_Receive_IT(&huart2, &pcRxData, 1); //Set UART to get another byte
+		}
+		else
+		{
+			//Buffer is full. Do something?
+		}
+	}
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
 }
 /* USER CODE END 0 */
 
@@ -119,6 +228,7 @@ int main(void)
 		setOutputData(i,1,i);
 	}
 	currentDshotOutput = 0;
+	currentPWMOutput = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -146,21 +256,31 @@ int main(void)
   MX_TIM2_Init();
   MX_CRC_Init();
   MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);
-  HAL_TIM_Base_Start_IT(&htim6);
+	//Start PWM and DSHOT generation
+	HAL_TIM_Base_Start_IT(&htim6);
+	HAL_TIM_Base_Start_IT(&htim7);
+
+	//Activate Multiplexers
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+
+	//HAL_UART_Receive_DMA();
+	pcRxDataPosition = 0;
+	HAL_UART_Receive_IT(&huart2, &pcRxData, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1)
+	{
 
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 
-  }
+	}
   /* USER CODE END 3 */
 
 }
@@ -259,10 +379,10 @@ void setOutputData(uint16_t cmd, uint8_t tlm, uint8_t id){
 void _Error_Handler(char *file, int line)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  while(1)
-  {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	while(1)
+	{
+	}
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -277,7 +397,7 @@ void _Error_Handler(char *file, int line)
 void assert_failed(uint8_t* file, uint32_t line)
 { 
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
+	/* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
