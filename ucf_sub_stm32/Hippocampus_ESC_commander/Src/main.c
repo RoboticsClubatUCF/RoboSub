@@ -66,6 +66,8 @@ uint8_t pcRxDataPosition;
 uint8_t pcRxBuffer[50];
 
 uint8_t escRxBuffer[10];
+
+uint8_t missedMotorCommands;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,7 +89,7 @@ extern UART_HandleTypeDef huart2;
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 {
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
-	if(htim->Instance == TIM1)
+	if(htim->Instance == TIM1 && missedMotorCommands < 10)
 	{
 		currentDshotOutput++;
 		if(currentDshotOutput < 8)
@@ -115,7 +117,7 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 			currentDshotOutput = 0;
 		}
 	}
-	if(htim->Instance == TIM2)
+	if(htim->Instance == TIM2 && missedMotorCommands < 10)
 	{
 		currentPWMOutput++;
 		if(currentPWMOutput < 8)
@@ -165,6 +167,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
 		htim2.Instance->CCR1 = pwmData[currentPWMOutput];
 		HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);
+		if(missedMotorCommands < 255) missedMotorCommands++;
 	}
 }
 
@@ -208,6 +211,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 							setDshotData((pcRxBuffer[i*2+2] << 8) | pcRxBuffer[i*2+1], 0, i);
 							setPwmData((pcRxBuffer[i*2+2] << 8) | pcRxBuffer[i*2+1], 0, i);
 						}
+						missedMotorCommands = 0;
 					}
 				}
 			}
@@ -302,6 +306,7 @@ int main(void)
 
 	//HAL_UART_Receive_DMA();
 	pcRxDataPosition = 0;
+	missedMotorCommands = 0;
 	HAL_UART_Receive_IT(&huart2, &pcRxData, 1);
   /* USER CODE END 2 */
 
