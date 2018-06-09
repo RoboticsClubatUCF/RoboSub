@@ -27,10 +27,11 @@ class PoleFinder:
 
 		pole = np.array(pole)
 		x, y, w, h = boundingRect(pole)
-		poleCenter = (cX,cY)
+		poleCenter = (x,y)
 
 		feedback = TrackObjectFeedback()
 		feedback.center = poleCenter
 		feedback.width = w
+		feedback.height = h
 		return feedback
 
