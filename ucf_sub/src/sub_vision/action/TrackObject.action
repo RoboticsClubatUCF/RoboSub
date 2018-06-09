@@ -15,10 +15,8 @@ Header header
 int32 fixType
 
 #constants for fix types
-int32 direction=0
-int32 position=1
-int32 pose=2
-int32 lost=3
+int32 center=0
+int32 width=1
 
 #Pose used to pass back fix information
 #If fix type is direction, the point component is a direction vector

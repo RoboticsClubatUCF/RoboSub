@@ -42,12 +42,9 @@ class VisionServer:
         self.rightModel = None
         self.rightMsg = None
 
-        self.targetType = TrackObjectGoal.navbar
         #self.thresholds = self.loadThresholds()
 
         self.poleFinder = PoleFinder()
-        self.navBarFinder = navbarfinder.NavbarFinder()
-        self.bouyFinder = bouyfinder.BuoyFinder()
         self.gatefinder = gatefinder.GateFinder()
         self.feedback = TrackObjectFeedback()
         self.response = TrackObjectResult()
@@ -62,7 +59,6 @@ class VisionServer:
             self.stereoModel = image_geometry.StereoCameraModel()
             self.stereoModel.fromCameraInfo(self.leftMsg, self.rightMsg)
 
-        feedback = TrackObjectFeedback()
         while running:
             if self.server.is_preempt_requested() or self.server.is_new_goal_available():
                 self.running = False
@@ -76,6 +72,10 @@ class VisionServer:
             elif self.targetType == TrackObjectGoal.pole:
                 self.feedback = self.poleFinder.process(self.leftImage,self.rightImage,self.disparityImage,self.leftModel,self.stereoModel)
                 self.server.publish_feedback(self.feedback)
+
+
+	self.response.stoppedOk = self.ok
+	self.server.set_succeeded(self.response)
 
 #TODO: Fix color thresholds
 

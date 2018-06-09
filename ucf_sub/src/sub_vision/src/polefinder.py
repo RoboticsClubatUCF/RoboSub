@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
-import vision_utils
+from vision_utils import ThreshAndContour
+from sub_vision.msg import TrackObjectFeedBack
 
 class PoleFinder:
 	def __init__(self):
@@ -24,6 +25,12 @@ class PoleFinder:
 				cY = int(M["m01"] / M["m00"])
 				pole.append(c)
 
+		pole = np.array(pole)
+		x, y, w, h = boundingRect(pole)
 		poleCenter = (cX,cY)
 
-		return cameraModel.projectPixelTo3dRay(poleCenter)
+		feedback = TrackObjectFeedback()
+		feedback.center = poleCenter
+		feedback.width = w
+		return feedback
+
