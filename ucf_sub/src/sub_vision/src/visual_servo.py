@@ -14,26 +14,26 @@ class visual_servo:
 	def __init__(self):
 		self.server = actionlib.SimpleActionServer('visual_servo', VisualServoAction, self.execute, False)
 		self.server.start()
-		
+
 		self.particleNum = 1000
 		self.imageWidth = 640
 		self.imageHeight = 480
-		
+
 		self.xThreshold = 0
 		self.yThreshold = 0
-		
+
 		self.lam = 1
-		
+
 		self.message = Wrench()
-		
+
 		self.response = TrackObjectResult()
 
 		self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
 		self.vision_client.wait_for_server()
 
-		
+
                 self.box_sub = rospy.Subscriber("/object_bounding_box", numpy_msg(Floats), self.servoing)
-                
+
                 self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
                 self.thruster_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
                 self.desired_wrench = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1)
@@ -63,10 +63,10 @@ class visual_servo:
 		self.Depth = self.msg
 
 	def execute(self,goal):
-		if goal.servotask == gate: 
+		if goal.servotask == gate:
                 	goal = vision_manager.msg.TrackObjectGoal()
                 	goal.objectType = goal.gate
-                	self.vision_client.send_goal(goal)              
+                	self.vision_client.send_goal(goal)
 			self.particles == particle.initParticles(self.particleNum, self.imageHeight, self.imageWidth)
 
                 elif goal == VisualServoGoal.pole:
@@ -144,7 +144,7 @@ class visual_servo:
 					message.torque.y = newCommand[4]
 					message.torque.z = newCommand[5]
 					thrusterPublisher.publish(message)
-			
+
 			else:
 				self.response.success = True
 				self.server.set_succeeded(self.response)
