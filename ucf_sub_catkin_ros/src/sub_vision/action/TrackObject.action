@@ -2,12 +2,8 @@
 int32 objectType
 
 #Constants for object types
-int32 navbar=0
-int32 redBouy=1
-int32 yellowBouy=2
-int32 greenBouy=3
-int32 startGate=4
-int32 trench=5
+int32 startGate=0
+int32 pole=1
 ---
 #result
 bool stoppedOk
@@ -22,6 +18,7 @@ int32 fixType
 int32 direction=0
 int32 position=1
 int32 pose=2
+int32 lost=3
 
 #Pose used to pass back fix information
 #If fix type is direction, the point component is a direction vector

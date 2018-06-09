@@ -20,28 +20,28 @@ class locate(smach.State):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
                 self.vision_client = actionlib.SimpleActionClient('track_object')
                 self.vision_client.wait_for_server()
-                self.movement_client = actionlib.SimpleActionClient('movement_server')
-                self.movement_client.wait_for_server()
+                #self.movement_client = actionlib.SimpleActionClient('movement_server')
+                #self.movement_client.wait_for_server()
                 self.listener = tf.TransformListener()
                 self.rel_pose = None
 	def execute(self, userdata):
 		rospy.loginfo("Locating the gate.")
                 start = rospy.Time(0)
-		# found = Call vision to see if gate is in view of front camereas.
+		found = vision_manager.msg.TrackObjectResult()
                 goal = vision_manager.msg.TrackObjectGoal()
                 goal.objectType = goal.startGate
 		while self.rel_pose == None:
                         self.vision_client.send_goal(goal, feedback_cb = feedback_cb)
-                        if self.rel_pose != None:
+                        '''if self.rel_pose != None:
                                 found = true
-                                break
-                        if rospy.Time(0) - start == 90:
+                                break'''
+                        if rospy.Time(0) - start >= 90:
                                 found = false
                                 break
-                        move_goal = trajectory_planner.msg.GoToPoseGoal()
+                        #move_goal = trajectory_planner.msg.GoToPoseGoal()
                         t = self.listener.getLatestCommonTime('/base_link','/map')
                         position, rotation = self.listener.lookupTransform('/base_link','/map', t)
-                        move_goal.startPose.position.x = position.x
+                        '''move_goal.startPose.position.x = position.x
                         move_goal.startPose.position.y = position.y
                         move_goal.startPose.position.z = position.z
                         move_goal.startPose.orientation.w = rotation.w
@@ -56,7 +56,7 @@ class locate(smach.State):
                         move_goal.targetPose.orientation.y = quaternion[1]
                         move_goal.targetPose.orientation.z = quaternion[2]
                         move_goal.targetPose.orientation.w = quaternion[3]
-                        self.movement_client.send_goal(move_goal)
+                        self.movement_client.send_goal(move_goal)'''
                 if found:
 			rospy.loginfo("Gate located.")
 			return 'success'

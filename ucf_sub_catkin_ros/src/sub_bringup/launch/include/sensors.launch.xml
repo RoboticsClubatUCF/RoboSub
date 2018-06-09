@@ -2,5 +2,11 @@
   <!--Cameras -->
   <include file="$(find sub_bringup)/launch/include/sensors/stereo_cameras.launch.xml" />
   <include file="$(find sub_bringup)/launch/include/sensors/bottom_camera.launch.xml" />
-
+  <include file="$(find sub_bringup)/launch/include/sensors/top_camera.launch.xml" />
+  <!-- AHRS8 -->
+  <include file="$(find sub_bringup)/launch/include/sensors/ahrs.launch.xml" />
+  <!-- Depth Sensor -->
+  <include file="$(find sub_sensors)/launch/depth.launch.xml" />
+  <!-- Internal Environment -->
+  <include file="$(find sub_sensors)/launch/internal.launch.xml" />
 </launch>
