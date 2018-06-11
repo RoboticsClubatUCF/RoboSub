@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import rospy
 import image_geometry as ig
 from rospy_tutorials.msg import Floats

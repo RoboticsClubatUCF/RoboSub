@@ -1,5 +1,4 @@
 <launch>
-  <node pkg="sub_vision" type="vision_manager.py" name="vision_manager_node">
-
-  </node>
+  <node pkg="sub_vision" type="vision_manager.py" name="vision_manager_node"/>
+  <node pkg="sub_vision" type="visual_servo.py" name="visual_servo"/>
 </launch>
