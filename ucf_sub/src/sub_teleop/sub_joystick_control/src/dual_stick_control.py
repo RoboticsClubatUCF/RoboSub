@@ -2,16 +2,16 @@ import rospy
 from geometry_msgs.msg import Wrench
 from geometry_msgs.msg import Vector3
 from sensor_msgs.msg import Joy
-
+from std_msgs.msg import Float32
 class ThrusterControl:
 
 	def __init__(self):
-		self.trans_sub = rospy.Subscriber("/translate/joy", Joy, translateCb)
-		self.rot_sub = rospy.Subscriber("/rotate/joy", Joy, rotateCb)
+		self.trans_sub = rospy.Subscriber("/translate/joy", Joy, self.translateCb)
+		self.rot_sub = rospy.Subscriber("/rotate/joy", Joy, self.rotateCb)
 		self.twist_pub = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1000)
 		self.limit_pub = rospy.Publisher("/thruster_limit", Float32, queue_size=1000)
 		self.autonomyEnabled = -1
-		self.autonomy_sub = rospy.Subscriber("/autonomyWrench", Wrench, republishWrench)
+		self.autonomy_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
 		self.autonomy_pub = rospy.Publisher("/autonomyWrench", Wrench, queue_size=1000)
 		self.twistmsg = Wrench()
 
@@ -49,6 +49,6 @@ if __name__== "__main__":
 	rospy.init_node('ThrusterControl', anonymous=False)
 	rate = rospy.Rate(50)
 
-	while not rospy.is_shutdown(:
-		tc.twist_pub.publish(tc.twistMsg)
+	while not rospy.is_shutdown():
+		tc.twist_pub.publish(tc.twistmsg)
 		rate.sleep()
