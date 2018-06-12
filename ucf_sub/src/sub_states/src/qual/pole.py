@@ -64,7 +64,7 @@ class drift(smach.State):
     		rospy.loginfo("Drifting")
         	start = rospy.Time(0)
 
-        	goal = TrackObjectGoal()
+        	goal = VisualServoGoal()
         	goal.servotask = goal.drift
         	self.client.send_goal(pole)
 

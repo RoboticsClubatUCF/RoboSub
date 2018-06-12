@@ -74,6 +74,7 @@ class GateFinder:
 
 		gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
 		feedback.center = gateCenter
+        feedback.found = True
 		return feedback
 
 

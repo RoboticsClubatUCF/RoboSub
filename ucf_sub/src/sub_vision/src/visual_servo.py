@@ -113,15 +113,19 @@ class visual_servo:
 	def servoing(self,msg):
 		if self.goal.servotask == VisualServoGoal.drift:
 			if self.orientationZ - self.startYaw < 270:
+				x = msg.feedback.center[0]
+				y = msg.feedback.center[1]
+				coordinates = np.array([x,y])
 				#Find distance to pole
 				interaction = None
-				coordinates = self.camera_info.projectPixelTo3dRay(msg.feedback.center)
-				u = self.lam * (coordinates[0]/coordinates[2])
-				v = self.lamb * (coordinates[1]/coordinates[2])
-				Z = coordinates[2]
+				#coordinates = self.camera_info.projectPixelTo3dRay(msg.feedback.center)
+				#u = self.lam * (coordinates[0]/coordinates[2])
+				#v = self.lamb * (coordinates[1]/coordinates[2])
+				#Z = coordinates[2]
 
 				if self.distance_to_object(msg.width) >= self.maintainedDistance:
-					int_matrix = self.interaction_matrix([1,5], u,v,Z)
+					int_matrix = self.interaction_matrix([1,5], x,y)
+					int_matrix = int_matrix[:,[1,5]]
 					forces = np.matmul(np.linalg.pinv(int_matrix), coordinates+self.translationUnits)
 					self.message.force.x = self.speed
 					self.message.force.y = forces[0]
