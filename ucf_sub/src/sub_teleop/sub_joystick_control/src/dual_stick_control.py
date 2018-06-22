@@ -13,35 +13,35 @@ class ThrusterControl:
 		self.autonomyEnabled = -1
 		self.autonomy_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
 		self.autonomy_pub = rospy.Publisher("/autonomyWrench", Wrench, queue_size=1000)
-		self.twistmsg = Wrench()
+		self.twistMsg = Wrench()
 
 	def translateCb(self, msg):
-		if(len(msg.axes)/len(float) < 3):
+		if(len(msg.axes) < 3):
 			rospy.loginfo("JOYSTICK ERROR")
 			return
 
-		twistMsg.force.x = msg.axes[1] * 20
-		twistMsg.force.y = msg.axes[0] * 20
-		twistMsg.force.z = msg.axes[2] * 20
+		self.twistMsg.force.x = msg.axes[1] * 20
+		self.twistMsg.force.y = msg.axes[0] * 20
+		self.twistMsg.force.z = msg.axes[2] * 20
 		thruster_limit = (msg.axes[3]+1)/4
 		self.limit_pub.publish(thruster_limit)
 		rospy.loginfo("TRANSLATION UPDATED")
 
 
 	def rotateCb(self, msg):
-		if(len(msg.axes)/len(float) < 3):
+		if(len(msg.axes) < 3):
 			rospy.loginfo("JOYSTICK ERROR: Not enough axes")
 			return
 
-		twistMsg.torque.x = msg.axes[0] * 20
-		twistMsg.torque.y = msg.axes[1] * 20
-		twistMsg.torque.z = msg.axes[2] * 20
+		self.twistMsg.torque.x = msg.axes[0] * 20
+		self.twistMsg.torque.y = msg.axes[1] * 20
+		self.twistMsg.torque.z = msg.axes[2] * 20
 		self.autonomyEnabled = msg.axes[3]
 		rospy.loginfo("ROTATION UPDATED")
 
 
 	def republishWrench(self, msg):
-		if autonomyEnabled > 0:
+		if self.autonomyEnabled > 0:
 			self.twist_pub.publish(msg)
 
 if __name__== "__main__":
@@ -50,5 +50,5 @@ if __name__== "__main__":
 	rate = rospy.Rate(50)
 
 	while not rospy.is_shutdown():
-		tc.twist_pub.publish(tc.twistmsg)
+		tc.twist_pub.publish(tc.twistMsg)
 		rate.sleep()
