@@ -1,4 +1,8 @@
 <launch>
-  <node name="trajectory_planner" pkg="sub_trajectory" type="trajectory_planner.py" />
-  <node name="thruster_control_server" pkg="sub_trajectory" type="thruster_control_server.py" />
+  <!--node name="trajectory_planner" pkg="sub_trajectory" type="trajectory_planner.py" /-->
+  <!--node name="thruster_control_server" pkg="sub_trajectory" type="thruster_control_server.py" /-->
+  
+  <rosparam command="load" file="$(find sub_trajectory)/param/high_level_thrusters.param"/>
+  <node name="vector_control" pkg="sub_trajectory" type="vector_thrust_control.py">
+  </node>
 </launch>
