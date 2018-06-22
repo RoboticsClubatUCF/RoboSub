@@ -57,8 +57,8 @@ class image_converter:
                 	pole = np.array(c)
 
 	#x,y,w,h = cv2.boundingRect(pole)
-    rect = cv2.minAreaRect(pole)
-	rospy.loginfo(rect)
+        rect = cv2.minAreaRect(pole)
+	rospy.loginfo(rect[0])
 	#box = cv2.boxPoints(rect)
 	#bbox = cv2.selectROI(cv_image,box)
 	#box = np.int0(box)
