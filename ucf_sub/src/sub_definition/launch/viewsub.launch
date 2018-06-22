@@ -1,5 +1,5 @@
 <launch>
-    <param name="robot_description" command="$(find xacro)/xacro.py '$(find ucf_sub_definition)/robots/ucf_robosub.urdf.xacro'"/>
+    <param name="robot_description" command="$(find xacro)/xacro.py '$(find sub_definition)/robots/ucf_robosub.urdf.xacro'"/>
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
         <param name="use_tf_static" value="false"/>
     </node>

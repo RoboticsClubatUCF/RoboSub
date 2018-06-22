@@ -27,7 +27,7 @@
 		    <child link="${identifier}_arm_main"/>
 		    <origin xyz="-0.0191 -0.0254 -0.076" rpy="0 0 0"/>
 		    <axis xyz="0 1 0"/>
-		    <limit effort="2.8" lower="-1.57" upper="0.2" velocity="20"/>
+		    <limit effort="2.8" lower="-0.2" upper="1.57" velocity="20"/>
 		</joint>
     </xacro:macro>
 </robot>

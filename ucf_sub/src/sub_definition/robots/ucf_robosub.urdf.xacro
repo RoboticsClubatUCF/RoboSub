@@ -1,20 +1,28 @@
 <?xml version="1.0"?>
 <robot name="ucf_robosub" xmlns:xacro="http://www.ros.org/wiki/xacro">
-    <xacro:include filename="$(find ucf_sub_definition)/urdf/sub_body.urdf.xacro"/>
-    <xacro:include filename="$(find ucf_sub_definition)/urdf/sub_thruster.urdf.xacro"/>
-    <xacro:include filename="$(find ucf_sub_definition)/urdf/sub_arm.urdf.xacro"/>
-    <xacro:include filename="$(find ucf_sub_definition)/urdf/vision_cam.urdf.xacro"/>
-    <sub_body />
-    <sub_thruster identifier="vertical1" parent="base_link" xPos="0.11" yPos="-0.18" zPos="0.0" roll="1.571" pitch="1.571" yaw="0.0"/>
-    <sub_thruster identifier="vertical2" parent="base_link" xPos="-0.08" yPos="-0.18" zPos="0.0" roll="1.571" pitch="1.571" yaw="0.0"/>
-    <sub_thruster identifier="vertical3" parent="base_link" xPos="-0.08" yPos="0.18" zPos="0.0" roll="-1.571" pitch="1.571" yaw="0.0"/>
-    <sub_thruster identifier="vertical4" parent="base_link" xPos="0.11" yPos="0.18" zPos="0.0" roll="-1.571" pitch="1.571" yaw="0.0"/>
-    <sub_thruster identifier="horizontal1" parent="base_link" xPos="0.24" yPos="-0.19" zPos="0.0" roll="-1.571" pitch="0.0" yaw="3.927"/>
-    <sub_thruster identifier="horizontal2" parent="base_link" xPos="-0.21" yPos="-0.19" zPos="0.0" roll="1.571" pitch="0.0" yaw="-0.785"/>
-    <sub_thruster identifier="horizontal3" parent="base_link" xPos="-0.21" yPos="0.19" zPos="0.0" roll="-1.571" pitch="0.0" yaw="0.785"/>
-    <sub_thruster identifier="horizontal4" parent="base_link" xPos="0.24" yPos="0.19" zPos="0.0" roll="1.571" pitch="0.0" yaw="-3.927"/>
-    <sub_arm identifier="right" parent="base_link" xPos="0.275" yPos="0.099" zPos="-0.0623" roll="0.0" pitch="0.0" yaw="0.0"/>
-    <sub_arm identifier="left" parent="base_link" xPos="0.275" yPos="-0.0482" zPos="-0.0623" roll="0.0" pitch="0.0" yaw="0.0"/>
+    <xacro:include filename="$(find sub_definition)/urdf/sub_body.urdf.xacro"/>
+    <xacro:include filename="$(find sub_definition)/urdf/sub_thruster.urdf.xacro"/>
+    <xacro:include filename="$(find sub_definition)/urdf/sub_arm.urdf.xacro"/>
+    <xacro:include filename="$(find sub_definition)/urdf/vision_cam.urdf.xacro"/>
+    <link name="base_link">
+    </link>
+    
+    <sub_thruster identifier="vertical1" parent="base_link" xPos="0.105" yPos="-0.18" zPos="0.0" roll="1.571" pitch="0.0" yaw="1.571"/>
+    <sub_thruster identifier="vertical2" parent="base_link" xPos="0.105" yPos="0.18" zPos="0.0" roll="1.571" pitch="3.141" yaw="1.571"/>
+    <sub_thruster identifier="vertical3" parent="base_link" xPos="-0.105" yPos="0.18" zPos="0.0" roll="1.571" pitch="3.141" yaw="1.571"/>
+    <sub_thruster identifier="vertical4" parent="base_link" xPos="-0.105" yPos="-0.18" zPos="0.0" roll="1.571" pitch="0.0" yaw="1.571"/>
+    <sub_thruster identifier="horizontal1" parent="base_link" xPos="0.22" yPos="-0.18" zPos="0.0" roll="1.571" pitch="0.7855" yaw="3.141"/>
+    <sub_thruster identifier="horizontal2" parent="base_link" xPos="0.22" yPos="0.18" zPos="0.0" roll="-1.571" pitch="0.7855" yaw="3.141"/>
+    <sub_thruster identifier="horizontal3" parent="base_link" xPos="-0.22" yPos="0.18" zPos="0.0" roll="-1.571" pitch="-0.7855" yaw="0.0"/>
+    <sub_thruster identifier="horizontal4" parent="base_link" xPos="-0.22" yPos="-0.18" zPos="0.0" roll="1.571" pitch="-0.7855" yaw="0.0"/>
     <sub_vision_cam identifier="left" parent="base_link" xPos="0.301" yPos="-0.051" zPos="0.0" roll="0.0" pitch="0.0" yaw="0.0"/>
     <sub_vision_cam identifier="right" parent="base_link" xPos="0.301" yPos="0.051" zPos="0.0" roll="0.0" pitch="0.0" yaw="0.0"/>
+    
+    <link name="ahrs8_imu">
+    </link>
+    <joint name="imu_joint" type="fixed">
+        <parent link="base_link"/>
+		<child link="ahrs8_imu"/>
+		<origin xyz="0.0 0.066 0.0" rpy="0.0 0.0 0.0"/>
+    </joint>
 </robot>
