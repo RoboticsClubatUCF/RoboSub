@@ -3,6 +3,7 @@ build/
 bin/
 devel/
 lib/
+install/
 msg_gen/
 srv_gen/
 
