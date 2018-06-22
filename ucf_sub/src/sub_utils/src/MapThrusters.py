@@ -115,6 +115,8 @@ for i in range(8):
     
     thrusterDict[i] = thrusterData
 
+msg.cmd = [0.0,0.0,0.0,0.0, 0.0,0.0,0.0,0.0]
+
 with open("high_level_params.param", "w") as outfile:
     yaml.dump({"thrusters":thrusterDict},outfile)
     
