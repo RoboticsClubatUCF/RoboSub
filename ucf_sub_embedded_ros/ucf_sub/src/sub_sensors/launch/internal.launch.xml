@@ -1,5 +1,0 @@
-<!-- Launch file to start reading data from our depth sensor -->
-<launch>
-    <node name="internal_air_driver" pkg="sub_sensors" type="InternalEnvironment.py"/>
-</launch>
-
