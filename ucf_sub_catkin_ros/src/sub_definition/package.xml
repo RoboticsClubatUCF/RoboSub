@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-    <name>ucf_sub_definition</name>
+    <name>sub_definition</name>
     <version>0.0.0</version>
     <description>UCF RoboSub robot description package</description>
     

@@ -4,23 +4,6 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="ucf_robosub" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <link name="base_link">
-    <visual>
-      <geometry>
-        <cylinder length="0.754" radius="0.115"/>
-      </geometry>
-      <origin rpy="0 1.571 0"/>
-      <material name="white">
-        <color rgba="1 1 1 0.7"/>
-      </material>
-    </visual>
-    <collision>
-      <geometry>
-        <cylinder length="0.754" radius="0.115"/>
-      </geometry>
-      <origin rpy="0 1.571 0"/>
-    </collision>
-  </link>
   <link name="vertical1_thruster">
     <visual>
       <geometry>
@@ -46,11 +29,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="vertical1_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="vertical1_thruster"/>
-    <origin rpy="1.571 1.571 0.0" xyz="0.11 -0.18 0.0"/>
+    <origin rpy="1.571 0.0 1.571" xyz="0.105 -0.18 0.0"/>
   </joint>
   <link name="vertical2_thruster">
     <visual>
@@ -77,11 +78,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="vertical2_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="vertical2_thruster"/>
-    <origin rpy="1.571 1.571 0.0" xyz="-0.08 -0.18 0.0"/>
+    <origin rpy="1.571 3.141 1.571" xyz="0.105 0.18 0.0"/>
   </joint>
   <link name="vertical3_thruster">
     <visual>
@@ -108,11 +127,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="vertical3_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="vertical3_thruster"/>
-    <origin rpy="-1.571 1.571 0.0" xyz="-0.08 0.18 0.0"/>
+    <origin rpy="1.571 3.141 1.571" xyz="-0.105 0.18 0.0"/>
   </joint>
   <link name="vertical4_thruster">
     <visual>
@@ -139,11 +176,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="vertical4_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="vertical4_thruster"/>
-    <origin rpy="-1.571 1.571 0.0" xyz="0.11 0.18 0.0"/>
+    <origin rpy="1.571 0.0 1.571" xyz="-0.105 -0.18 0.0"/>
   </joint>
   <link name="horizontal1_thruster">
     <visual>
@@ -170,11 +225,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="horizontal1_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="horizontal1_thruster"/>
-    <origin rpy="-1.571 0.0 3.927" xyz="0.24 -0.19 0.0"/>
+    <origin rpy="1.571 0.7855 3.141" xyz="0.22 -0.18 0.0"/>
   </joint>
   <link name="horizontal2_thruster">
     <visual>
@@ -201,11 +274,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="horizontal2_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="horizontal2_thruster"/>
-    <origin rpy="1.571 0.0 -0.785" xyz="-0.21 -0.19 0.0"/>
+    <origin rpy="-1.571 0.7855 3.141" xyz="0.22 0.18 0.0"/>
   </joint>
   <link name="horizontal3_thruster">
     <visual>
@@ -232,11 +323,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="horizontal3_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="horizontal3_thruster"/>
-    <origin rpy="-1.571 0.0 0.785" xyz="-0.21 0.19 0.0"/>
+    <origin rpy="-1.571 -0.7855 0.0" xyz="-0.22 0.18 0.0"/>
   </joint>
   <link name="horizontal4_thruster">
     <visual>
@@ -263,67 +372,29 @@
       </geometry>
       <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.131" radius="0.02"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0.0253 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <cylinder length="0.0445" radius="0.0458"/>
+      </geometry>
+      <origin rpy="0 -1.571 0" xyz="0 0 0"/>
+    </collision>
+    <collision>
+      <geometry>
+        <box size="0.0634 0.0128 0.0381"/>
+      </geometry>
+      <origin rpy="1.571 0 0" xyz="0 0 -0.0522"/>
+    </collision>
   </link>
   <joint name="horizontal4_thruster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="horizontal4_thruster"/>
-    <origin rpy="1.571 0.0 -3.927" xyz="0.24 0.19 0.0"/>
-  </joint>
-  <link name="right_arm_base">
-    <visual>
-      <geometry>
-        <box size="0.0381 0.0509 0.05"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="-0.01905 -0.0254 -0.03"/>
-    </visual>
-  </link>
-  <link name="right_arm_main">
-    <visual>
-      <geometry>
-        <box size="0.2667 0.0253 0.0262"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0.13335 0 0"/>
-    </visual>
-  </link>
-  <joint name="right_arm_base_joint" type="fixed">
-    <parent link="base_link"/>
-    <child link="right_arm_base"/>
-    <origin rpy="0.0 0.0 0.0" xyz="0.275 0.099 -0.0623"/>
-  </joint>
-  <joint name="right_arm_pivot_joint" type="revolute">
-    <parent link="right_arm_base"/>
-    <child link="right_arm_main"/>
-    <origin rpy="0 0 0" xyz="-0.0191 -0.0254 -0.076"/>
-    <axis xyz="0 1 0"/>
-    <limit effort="2.8" lower="-1.57" upper="0.2" velocity="20"/>
-  </joint>
-  <link name="left_arm_base">
-    <visual>
-      <geometry>
-        <box size="0.0381 0.0509 0.05"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="-0.01905 -0.0254 -0.03"/>
-    </visual>
-  </link>
-  <link name="left_arm_main">
-    <visual>
-      <geometry>
-        <box size="0.2667 0.0253 0.0262"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0.13335 0 0"/>
-    </visual>
-  </link>
-  <joint name="left_arm_base_joint" type="fixed">
-    <parent link="base_link"/>
-    <child link="left_arm_base"/>
-    <origin rpy="0.0 0.0 0.0" xyz="0.275 -0.0482 -0.0623"/>
-  </joint>
-  <joint name="left_arm_pivot_joint" type="revolute">
-    <parent link="left_arm_base"/>
-    <child link="left_arm_main"/>
-    <origin rpy="0 0 0" xyz="-0.0191 -0.0254 -0.076"/>
-    <axis xyz="0 1 0"/>
-    <limit effort="2.8" lower="-1.57" upper="0.2" velocity="20"/>
+    <origin rpy="1.571 -0.7855 0.0" xyz="-0.22 -0.18 0.0"/>
   </joint>
   <link name="left_vision_cam">
     <visual>
@@ -349,7 +420,7 @@
   <joint name="left_cam_joint" type="fixed">
     <parent link="base_link"/>
     <child link="left_vision_cam"/>
-    <origin rpy="0.0 0.0 0.0" xyz="0.273 -0.0508 0.0"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.301 -0.051 0.0"/>
   </joint>
   <link name="right_vision_cam">
     <visual>
@@ -375,7 +446,14 @@
   <joint name="right_cam_joint" type="fixed">
     <parent link="base_link"/>
     <child link="right_vision_cam"/>
-    <origin rpy="0.0 0.0 0.0" xyz="0.273 0.0508 0.0"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.301 0.051 0.0"/>
+  </joint>
+  <link name="imu">
+    </link>
+  <joint name="imu_joint">
+    <parent link="base_link"/>
+    <child link="imu"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.066 0.0"/>
   </joint>
 </robot>
 

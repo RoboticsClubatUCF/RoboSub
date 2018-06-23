@@ -143,7 +143,7 @@ class MovementServer:
         #TODO: add feedback/error result stuff
         for waypoint in waypoints: #Execute the 4 part movement plan
             self.ThrusterControllerClient.send_goal(waypoint)
-            while self.ThrusterControllerClient.get_state() is in ["ACTIVE", "PENDING"]:
+            while self.ThrusterControllerClient.get_state() in ["ACTIVE", "PENDING"]:
                 if self.server.is_preempt_requested():
                     self.ThrusterControllerClient.cancel_all_goals()
                     self.server.set_preempted(result=sub_trajectory.msg.GoToPoseResult(Ok=True))
