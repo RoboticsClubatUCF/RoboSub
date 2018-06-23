@@ -1,0 +1,1 @@
+KERNEL=="ttyUSB[0-9]*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ucfsub/depth", MODE="0666"

@@ -1,0 +1,44 @@
+{
+	"COMPUTE" : [
+		{
+			"ID": 0,
+			"Type": 200,
+			"Address": 41
+		},
+		{
+			"ID": 1,
+			"Type": 200,
+			"Address": 42
+		},
+		{
+			"ID": 2,
+			"Type": 200,
+			"Address": 43
+		},
+		{
+			"ID": 3,
+			"Type": 200,
+			"Address": 44
+		},
+		{
+			"ID": 4,
+			"Type": 200,
+			"Address": 45
+		},
+		{
+			"ID": 5,
+			"Type": 200,
+			"Address": 46
+		},
+		{
+			"ID": 6,
+			"Type": 200,
+			"Address": 47
+		},
+		{
+			"ID": 7,
+			"Type": 200,
+			"Address": 48
+		}
+	]
+}
