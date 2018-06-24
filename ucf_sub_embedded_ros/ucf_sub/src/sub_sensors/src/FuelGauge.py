@@ -97,14 +97,15 @@ if __name__ == "__main__":
     import rospy
     from sensor_msgs.msg import BatteryState
     
+    rospy.init_node('BatteryMonitor')
     fg = FuelGauge(address=0x64, bus=1)
     fg.initSensor(256)
     
-    r = rospy.rate(4)
+    r = rospy.Rate(4)
     
     batPub = rospy.Publisher("/BatteryStatus", BatteryState, queue_size = 10)
     msg = BatteryState()
-    msg.header.frame_id("battery1")
+    msg.header.frame_id = "battery1"
     msg.design_capacity = 12.6
     
     while not rospy.is_shutdown():
@@ -115,4 +116,4 @@ if __name__ == "__main__":
         msg.percentage = 1+(msg.charge/msg.design_capacity)
         msg.header.stamp = rospy.Time.from_sec(fg.timestamp.timestamp())
         batPub.publish(msg)
-        rate.sleep(0.25)
+        r.sleep()
