@@ -86,12 +86,6 @@ class FuelGauge:
             self.current = 0.06/self.shunt * float(struct.unpack('>H', currentBuf)[0]-0x7FFF)/32767.0
             self.temperature = 510 * float(struct.unpack('>H', temperatureBuf)[0])/0xFFFF
             self.temperature = self.temperature * 9/5 - 459.67
-
-            print("C:" + str(self.charge))
-            print("V:"+str(self.voltage))
-            print("A:"+str(self.current))
-            print("T:"+str(self.temperature))
-            print("----------")
             
             self.timestamp = datetime.now()
             
@@ -100,8 +94,25 @@ class FuelGauge:
 	        
 	
 if __name__ == "__main__":
+    import rospy
+    from sensor_msgs.msg import BatteryState
+    
     fg = FuelGauge(address=0x64, bus=1)
     fg.initSensor(256)
-    while True:
+    
+    r = rospy.rate(4)
+    
+    batPub = rospy.Publisher("/BatteryStatus", BatteryState, queue_size = 10)
+    msg = BatteryState()
+    msg.header.frame_id("battery1")
+    msg.design_capacity = 12.6
+    
+    while not rospy.is_shutdown():
         fg.read()
-        time.sleep(0.25)
+        msg.voltage = fg.voltage
+        msg.current = fg.current/1000
+        msg.charge = fg.charge/1000
+        msg.percentage = 1+(msg.charge/msg.design_capacity)
+        msg.header.stamp = rospy.Time.from_sec(fg.timestamp.timestamp())
+        batPub.publish(msg)
+        rate.sleep(0.25)
