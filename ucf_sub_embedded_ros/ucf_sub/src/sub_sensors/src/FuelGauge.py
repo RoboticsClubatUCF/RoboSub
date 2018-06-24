@@ -85,7 +85,7 @@ class FuelGauge:
             self.voltage = 23.6 * float(struct.unpack('>H', voltageBuf)[0])/65535.0
             self.current = 0.06/self.shunt * float(struct.unpack('>H', currentBuf)[0]-0x7FFF)/32767.0
             self.temperature = 510 * float(struct.unpack('>H', temperatureBuf)[0])/0xFFFF
-            self.temperature = self.temperature * 9/5 - 459.67
+            self.temperature = self.temperature - 273.15
             
             self.timestamp = datetime.now()
             
@@ -107,13 +107,28 @@ if __name__ == "__main__":
     msg = BatteryState()
     msg.header.frame_id = "battery1"
     msg.design_capacity = 12.6
+    msg.power_supply_technology = msg.POWER_SUPPLY_TECHNOLOGY_LIPO
     
     while not rospy.is_shutdown():
         fg.read()
         msg.voltage = fg.voltage
         msg.current = fg.current/1000
         msg.charge = fg.charge/1000
+        
+        if msg.current < 0:
+            msg.power_supply_status = msg.POWER_SUPPLY_STATUS_DISCHARGING
+        elif msg.current > 0:
+            msg.power_supply_status = msg.POWER_SUPPLY_STATUS_CHARGING
+            
+        if fg.temperature > 60:
+            msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_OVERHEAT
+        elif fg.temperature < 0:
+            msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_COLD
+        else:
+            msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_GOOD
+            
         msg.percentage = 1+(msg.charge/msg.design_capacity)
+        
         msg.header.stamp = rospy.Time.from_sec(fg.timestamp.timestamp())
         batPub.publish(msg)
         r.sleep()
