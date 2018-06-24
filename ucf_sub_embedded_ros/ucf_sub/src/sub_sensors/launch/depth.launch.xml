@@ -5,7 +5,7 @@
     <arg name="baud" default="115200" />
 
     <!-- Launch an AHRS-8 node. -->
-    <node name="depthsense_driver" pkg="sub_sensors" type="MOBUSDepth.py">
+    <node name="depthsense_driver" pkg="sub_sensors" type="MODBUSDepth.py">
         <param name="port" value="$(arg port)" />
         <param name="baud" value="$(arg baud)" />
     </node>
