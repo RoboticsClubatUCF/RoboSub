@@ -40,7 +40,10 @@ class GateFinder:
     def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel):
 
         imageHSV = cv2.cvtColor(imageRightRect, cv2.COLOR_BGR2HSV)
-        contours, _ = ThreshAndContour(imageHSV, Thresholds(upper=(40,52,120), lower=(20, 30, 80)))
+	mask=cv2.inRange(imageRightRect, np.array([20,30,80],dtype='uint8'),np.array([40,52,120],dtype='uint8'))
+	output = cv2.bitwise_and(imageRightRect, imageRightRect, mask=mask)
+	cnts = cv2.findContours(mask.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)	
+	contours = cnts[1]
 
         if len(contours) == 0:
             return None
