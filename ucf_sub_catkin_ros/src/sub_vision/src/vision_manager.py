@@ -22,7 +22,7 @@ class VisionServer:
 
         self.bridge = CvBridge()
 
-        self.downSub = rospy.Subscriber('/down_camera/image_raw', Image, self.downwardsCallback)
+        self.downSub = rospy.Subscriber('/down_camera/image_color', Image, self.downwardsCallback)
         self.downInfoSub = rospy.Subscriber('/down_camera/info', CameraInfo, self.downInfoCallback)
         self.downImage = None
         self.downModel = None
@@ -31,12 +31,12 @@ class VisionServer:
         self.disparityImage = None
         self.stereoModel = None
 
-        self.leftSub = rospy.Subscriber('/stero/left/image_raw', Image, self.leftCallback)
+        self.leftSub = rospy.Subscriber('/stereo/left/image_color', Image, self.leftCallback)
         self.leftInfoSub = rospy.Subscriber('/stereo/left/camera_info', CameraInfo, self.leftInfoCallback)
         self.leftImage = None
         self.leftModel = None
         self.leftMsg = None
-        self.rightSub = rospy.Subscriber('/stereo/right/image_raw', Image, self.rightCallback)
+        self.rightSub = rospy.Subscriber('/stereo/right/image_color', Image, self.rightCallback)
         self.rightInfoSub = rospy.Subscriber('/stereo/right/camera_info', CameraInfo, self.rightInfoCallback)
         self.rightImage = None
         self.rightModel = None
@@ -97,7 +97,7 @@ class VisionServer:
             print("No camera model for downwards camera")
             return
 
-        self.downModel.rectifyImage(self.downImage, self.downImage)
+        #self.downModel.rectifyImage(self.downImage, self.downImage)
 
     def stereoCallback(self, msg):
         try:
