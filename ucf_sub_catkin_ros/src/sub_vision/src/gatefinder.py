@@ -11,6 +11,16 @@ def angle_cos(p0, p1, p2):
     d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
     return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
 
+
+def nlargest(n, contours, key):
+    largestContours = []
+    if key == cv2.contourArea:
+    	sortedContours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+    	for i in range(n):
+        	largestContours.append(sortedContours[i])
+    return largestContours
+
 def greatestNAreaContours(contours, n):
 	return nlargest(n, contours, key=cv2.contourArea)
 
