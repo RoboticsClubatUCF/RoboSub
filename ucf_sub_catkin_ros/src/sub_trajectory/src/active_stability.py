@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 from enum import Enum
 from nav_msgs.msg import Odometry
 from sub_trajectory.msg import StabilityMode
