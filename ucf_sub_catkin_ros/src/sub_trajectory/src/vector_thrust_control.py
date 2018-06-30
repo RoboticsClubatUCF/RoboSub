@@ -124,29 +124,38 @@ class VectorController:
         if optimize:
             #TODO: SLSQP vs other methods?
             #TODO: per thruster bounds? (Good for when we kill the t200s and have to slap on seabotix)
-            #TODO: Impact of tol and x0 on runtime?
-            #TODO: what happens if x0 is out of bounds?
+            #Impact of tol and x0 on runtime? x0 doesnt seem appreciable, tol changes a little but not much
+            #What happens if x0 is out of bounds? A: The optimizer ignores the bounds
              minimized = minimize(
                 fun=objective,
-                x0=pinvOutput/(np.linalg.norm(pinvOutput)+0.1),
+                x0=0.0*pinvOutput,
                 method="SLSQP",
                 jac=jacobian,
                 bounds=[(-0.2,0.2) for x in self.thrusterData],
-                tol=0.1)
-             rospy.logdebug("Optimized error: " + str(np.linalg.norm(desiredWrench - self.thrustToWrench.dot(minimized.x))))
+                tol=0.05)
+             rospy.loginfo("Optimized error: " + str(np.linalg.norm(desiredWrench - self.thrustToWrench.dot(minimized.x))))
         #rospy.loginfo("pinv: " + str(pinvOutput))
         
         message = ThrusterCmd()
-        
+        actualMsg = Wrench()
+        actual = None
         if optimize:
             #rospy.loginfo("optimize output wrench: " + str(self.thrustToWrench.dot(minimized.x)))
             message.cmd = minimized.x.tolist()
+            actual = self.thrustToWrench.dot(minimized.x)
         else:
             #rospy.loginfo("pinv output wrench: " + str(self.thrustToWrench.dot(pinvOutput)))
             message.cmd = pinvOutput.tolist()
+            actual = self.thrustToWrench.dot(pinvOutput)
+        actualMsg.force.x = actual[0]
+        actualMsg.force.y = actual[1]
+        actualMsg.force.z = actual[2]
+        actualMsg.torque.x = actual[3]
+        actualMsg.torque.y = actual[4]
+        actualMsg.torque.z = actual[5]
         
+        self.actualWrenchPub.publish(actualMsg)
         self.thrustPublisher.publish(message)
-        
     def thrusterStatusCb(self, msg):
         needToUpdate = False #Flag set true if something happened that requires a control matrix update
         if not self.thrusterStatuses.has_key(msg.thrusterChannel): #If we've never had a message from this thruster before, update the control matrix
@@ -168,7 +177,8 @@ class VectorController:
         rospy.Subscriber("thrusterStatus", ThrusterStatus, self.thrusterStatusCb)
         
         self.thrustPublisher = rospy.Publisher("/thrusters/cmd_vel", ThrusterCmd, queue_size=10)
-        
+        self.actualWrenchPub = rospy.Publisher("actualThrustWrench", Wrench, queue_size=10)
+
         rate = rospy.Rate(5)
         while not rospy.is_shutdown():
             for k, v in self.thrusterStatuses.items():
