@@ -1,0 +1,14 @@
+<launch>
+  <node pkg="image_view" type="video_recorder" name="left_recorder">
+    <param name="fps" value="15"/>
+    <param name="codec" value="MJPG"/>
+    <param name="filename" command="$(find sub_bringup)/timestamp.sh left"/>
+    <remap from="image" to="/stereo/left/image_color"/>
+  </node>
+  <node pkg="image_view" type="video_recorder" name="right_recorder">
+    <param name="fps" value="15"/>
+    <param name="codec" value="MJPG"/>
+    <param name="filename" command="$(find sub_bringup)/timestamp.sh right"/>
+    <remap from="image" to="/stereo/right/image_color"/>
+  </node>
+</launch>
