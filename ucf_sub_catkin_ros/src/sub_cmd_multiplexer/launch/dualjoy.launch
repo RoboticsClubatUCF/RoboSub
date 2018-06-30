@@ -1,9 +1,13 @@
 <launch>
 	<node name="translate" pkg="joy" type="joy_node" ns="translate">
 		<param name="dev" value="/dev/input/js1" />
+		<param name="autorepeat" value="10"/>
+		<param name="deadzone" value="0.07"/>
 	</node>
 	<node name="rotate" pkg="joy" type="joy_node" ns="rotate">
 		<param name="dev" value="/dev/input/js0" />
+		<param name="autorepeat" value="10" />
+		<param name="deadzone" value="0.07"/>
 	</node>
     <!--node name="joy_to_motors" pkg="sub_joystick_control" type="dual_stick_control"/-->
 </launch>
