@@ -23,7 +23,7 @@
     <joint name="imu_joint" type="fixed">
         <parent link="base_link"/>
 	<child link="ahrs8_imu"/>
-	<origin xyz="0.0 0.066 0.0" rpy="0.0 0.0 0.0"/>
+	<origin xyz="0.0 0.066 0.0" rpy="3.141 0.0 3.141"/>
     </joint>
     
     <link name="depth">

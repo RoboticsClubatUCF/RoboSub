@@ -49,15 +49,15 @@ class ThrusterControl:
 		self.limit_pub.publish(thruster_limit)
 
 		if msg.axes[4] > 0.5 and abs(msg.axes[5]) < 0.5:
-			self.stabilityMode.mode = self.stabilityMode.mode.velocity
+			self.stabilityMode.mode = self.stabilityMode.velocity
 			self.depth_mode_pub.publish(self.stabilityMode)
 
 		elif abs(msg.axes[4]) < 0.5 and msg.axes[5] > 0.5:
-			self.stabilityMode.mode = self.stabilityMode.mode.position
+			self.stabilityMode.mode = self.stabilityMode.position
 			self.depth_mode_pub.publish(self.stabilityMode)
 
 		elif abs(msg.axes[4]) < 0.5 and msg.axes[5] < -0.5:
-			self.stabilityMode.mode = self.stabilityMode.mode.off
+			self.stabilityMode.mode = self.stabilityMode.off
 			self.depth_mode_pub.publish(self.stabilityMode)
 
 		rospy.loginfo("TRANSLATION UPDATED")
@@ -73,7 +73,7 @@ class ThrusterControl:
 		self.autonomyEnabled = msg.axes[3]
 
 		if msg.axes[4] > 0.5 and abs(msg.axes[5]) < 0.5:
-			self.stabilityMode.mode = self.stabilityMode.mode.velocity
+			self.stabilityMode.mode = self.stabilityMode.velocity
 			self.stabilityMode.yawEnabled = self.yawEnabled
 			self.angle_mode_pub.publish(self.stabilityMode)
 
@@ -83,12 +83,12 @@ class ThrusterControl:
 			self.angle_mode_pub.publish(self.stabilityMode)
 
 		elif abs(msg.axes[4]) < 0.5 and msg.axes[5] > 0.5:
-			self.stabilityMode.mode = self.stabilityMode.mode.position
+			self.stabilityMode.mode = self.stabilityMode.position
 			self.stabilityMode.yawEnabled = self.yawEnabled
 			self.angle_mode_pub.publish(self.stabilityMode)
 
 		elif abs(msg.axes[4]) < 0.5 and msg.axes[5] < -0.5:
-			self.stabilityMode.mode = self.stabilityMode.mode.off
+			self.stabilityMode.mode = self.stabilityMode.off
 			self.stabilityMode.yawEnabled = self.yawEnabled
 			self.angle_mode_pub.publish(self.stabilityMode)
 
@@ -108,18 +108,18 @@ class ThrusterControl:
 		self.stabilityMsg = msg
 
 if __name__== "__main__":
-	tc = ThrusterControl()
 	rospy.init_node('ThrusterControl', anonymous=False)
+	tc = ThrusterControl()
 	rate = rospy.Rate(50)
-
+	msg = Wrench()
 	while not rospy.is_shutdown():
 		if tc.autonomyEnabled < 0:
-			tc.twistMsg.force.x = tc.twistMsg.force.x + tc.stabilityMsg.force.x
-			tc.twistMsg.force.y = tc.twistMsg.force.y + tc.stabilityMsg.force.y
-			tc.twistMsg.force.z = tc.twistMsg.force.z + tc.stabilityMsg.force.z
-			tc.twistMsg.torque.x = tc.twistMsg.torque.x + tc.stabilityMsg.torque.x
-			tc.twistMsg.torque.y = tc.twistMsg.torque.y + tc.stabilityMsg.torque.y
-			tc.twistMsg.torque.z = tc.twistMsg.torque.z + tc.stabilityMsg.torque.z
+			msg.force.x = tc.twistMsg.force.x + tc.stabilityMsg.force.x
+			msg.force.y = tc.twistMsg.force.y + tc.stabilityMsg.force.y
+			msg.force.z = tc.twistMsg.force.z + tc.stabilityMsg.force.z
+			msg.torque.x = tc.twistMsg.torque.x + tc.stabilityMsg.torque.x
+			msg.torque.y = tc.twistMsg.torque.y + tc.stabilityMsg.torque.y
+			msg.torque.z = tc.twistMsg.torque.z + tc.stabilityMsg.torque.z
 
-			tc.twist_pub.publish(tc.twistMsg)
+			tc.twist_pub.publish(msg)
 		rate.sleep()
