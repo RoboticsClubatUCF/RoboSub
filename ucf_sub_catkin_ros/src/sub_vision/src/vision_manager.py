@@ -34,13 +34,13 @@ class VisionServer:
         self.leftSub = rospy.Subscriber('/stereo/left/image_color', Image, self.leftCallback)
         self.leftInfoSub = rospy.Subscriber('/stereo/left/camera_info', CameraInfo, self.leftInfoCallback)
         self.leftImage = None
-        self.leftModel = None
+	self.leftModel = image_geometry.PinholeCameraModel()
         self.leftMsg = None
         self.rightSub = rospy.Subscriber('/stereo/right/image_color', Image, self.rightCallback)
         self.rightInfoSub = rospy.Subscriber('/stereo/right/camera_info', CameraInfo, self.rightInfoCallback)
         self.rightImage = None
-        self.rightModel = None
         self.rightMsg = None
+	self.rightModel = image_geometry.PinholeCameraModel()
 
         #self.thresholds = self.loadThresholds()
 
@@ -60,7 +60,13 @@ class VisionServer:
             self.stereoModel.fromCameraInfo(self.leftMsg, self.rightMsg)
 
         while self.running: 
-       		if self.server.is_preempt_requested() or self.server.is_new_goal_available():
+		if self.rightModel is not None:
+			self.rightModel.rectifyImage(self.rightImage, self.rightImage)
+		
+		if self.leftModel is not None:
+			self.leftModel.rectifyImage(self.leftImage, self.leftImage)
+       		
+		if self.server.is_preempt_requested() or self.server.is_new_goal_available():
 			self.running = False
                 	continue
 
@@ -121,32 +127,25 @@ class VisionServer:
             print("No camera model for left camera")
             return
 
-        self.leftModel.rectifyImage(self.leftImage, self.leftImage)
-
     def rightCallback(self, msg):
         try:
             self.rightImage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        except CvBridgeError as e:
+	except CvBridgeError as e:
             print(e)
 
         if self.rightModel is None:
             print("No camera model for right camera")
             return
 
-        #self.rightModel.rectifyImage(self.rightImage, self.rightImage)
 
     def downInfoCallback(self, msg):
         self.downModel = image_geometry.PinholeCameraModel()
         self.downModel.fromCameraInfo(msg)
 
     def rightInfoCallback(self, msg):
-        self.rightMsg = msg
-        self.rightModel = image_geometry.PinholeCameraModel()
         self.rightModel.fromCameraInfo(msg)
 
     def leftInfoCallback(self, msg):
-        self.leftMsg = msg
-        self.leftModel = image_geometry.PinholeCameraModel()
         self.leftModel.fromCameraInfo(msg)
 
     def loadThresholds(self):

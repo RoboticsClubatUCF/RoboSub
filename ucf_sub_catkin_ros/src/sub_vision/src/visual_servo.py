@@ -36,6 +36,9 @@ class visual_servo:
 		self.camera_info = None
 
 		self.result=False
+
+		self.camera_info = ig.PinholeCameraModel()
+
 		self.camera_info_pub = rospy.Subscriber("/stereo/right/camera_info", CameraInfo, self.initInfo)
 		self.vision_feedback = rospy.Subscriber('/track_object/feedback', TrackObjectFeedback, self.servoing)
         	self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
@@ -46,14 +49,13 @@ class visual_servo:
         	self.FirstIMUCall = True
         	self.imuSubscriber = rospy.Subscriber("/imu/data", Imu, self.initIMU)
         	self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
-        	self.knownWidth = 0.0
+        	self.knownWidth = 3.5
         	self.maintainedDistance = 12
         	self.speed = 1
 
 
 
 	def initInfo(self, msg):
-		self.camera_info = ig.PinholeCameraModel()
 		self.camera_info.fromCameraInfo(msg)
         	self.fx = self.camera_info.fx()
         	self.fy = self.camera_info.fy()
@@ -65,7 +67,9 @@ class visual_servo:
 		return int_matrix
 
 	def distance_to_object(self,perWidth):
-		return (self.knownWidth * self.fx) / perWidth
+		distance = (self.knownWidth * self.fx) / perWidth
+		print(distance)
+		return distance
 
 	def initIMU(self, msg):
 		self.orientationX = msg.orientation.x
@@ -122,7 +126,7 @@ class visual_servo:
 				#u = self.lam * (coordinates[0]/coordinates[2])
 				#v = self.lamb * (coordinates[1]/coordinates[2])
 				#Z = coordinates[2]
-
+				#print(msg.width)
 				if self.distance_to_object(msg.width) >= self.maintainedDistance:
 					int_matrix = self.interaction_matrix([1,5], x,y)
 					int_matrix = int_matrix[:,[1,5]]
@@ -142,6 +146,7 @@ class visual_servo:
 		else:
 			features = []
 			width = msg.feedback.width/2
+			print(self.distance_to_object(width))
 			height = msg.feedback.height/2
 			features.append((msg.feedback.center[0]-width,msg.feedback.center[1]-height))
 			features.append((msg.feedback.center[0]+width, features[0][1]))
@@ -149,8 +154,10 @@ class visual_servo:
 
 
 			#Find the camera position in the frame
-			cX = self.camera_info.cx()
-			cY = self.camera_info.cy()
+			if self.camera_info is not None:
+				cX = self.camera_info.cx()
+			if self.camera_info is not None:
+				cY = self.camera_info.cy()
 
 			#If center of bounding box is not aligned with camera
 			if math.fabs(msg.feedback.center[0]-cX) > self.xThreshold:
@@ -166,7 +173,7 @@ class visual_servo:
 					int_matrix = self.interaction_matrix(dof, features[0][0], features[0][1])
 
 					for i in range(2):
-						rospy.loginfo(int_matrix)
+						#rospy.loginfo(int_matrix)
 						int_matrix = np.vstack((int_matrix, self.interaction_matrix(dof, features[i+1][0], features[i+1][1])))
 
 					newPos = np.array([[cX-width],[cY-height], [cX+width], [cY-height], [cX-width], [cY+height]])
