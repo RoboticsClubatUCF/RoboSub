@@ -5,5 +5,5 @@
 	<node name="rotate" pkg="joy" type="joy_node" ns="rotate">
 		<param name="dev" value="/dev/input/js0" />
 	</node>
-    <node name="joy_to_motors" pkg="sub_joystick_control" type="dual_stick_control"/>
+    <!--node name="joy_to_motors" pkg="sub_joystick_control" type="dual_stick_control"/-->
 </launch>

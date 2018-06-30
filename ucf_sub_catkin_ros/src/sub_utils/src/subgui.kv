@@ -1,12 +1,19 @@
-<Box_a>:
+<KivyCamera>:
+	allow_stretch: True
+	keep_ratio: True
+
+<Battery_a>:
     Label:
         id: label1
-        text: root.voltage
+        text: root.voltage + "V"
+        pos_hint: {"x": -0.45, 'y':-0.45}
 
     Label:
     	id: label2
-        text: root.current
+        text: root.current + "a"
+        pos_hint: {"x": -0.45, 'y':-0.40}
 
     Label:
         id: label3
-        text: root.chargevoltage = StringProperty()
+        text: root.charge + "Ah"
+        pos_hint: {"x": -0.45, 'y':-0.35}
