@@ -5,7 +5,7 @@ from geometry_msgs.msg import Wrench
 from geometry_msgs.msg import Vector3
 
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 
 from sub_trajectory.msg import StabilityMode
 
@@ -18,27 +18,32 @@ class modes(Enum):
 class ThrusterControl:
 
 	def __init__(self):
-		self.trans_sub = rospy.Subscriber("/translate/joy", Joy, self.translateCb)
-		self.rot_sub = rospy.Subscriber("/rotate/joy", Joy, self.rotateCb)
-		self.twist_pub = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1000)
-		self.limit_pub = rospy.Publisher("/thruster_limit", Float32, queue_size=1000)
-		self.autonomyEnabled = 1
-		self.autonomy_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
-
-		self.stability_sub = rospy.Subscriber("/stabilityWrench", Wrench, self.stabilityWrench)
-
 		self.twistMsg = Wrench()
 		self.stabilityMsg = Wrench()
 		self.depthMode = modes.off
 		self.angleMode = modes.off
 		self.yawEnabled = False
 		self.stabilityMode = StabilityMode()
+		self.autonomyEnabled = -1
+
+		self.trans_sub = rospy.Subscriber("/translate/joy", Joy, self.translateCb)
+		self.rot_sub = rospy.Subscriber("/rotate/joy", Joy, self.rotateCb)
+
+		self.twist_pub = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1000)
+		self.limit_pub = rospy.Publisher("/thruster_limit", Float32, queue_size=1000)
+
+		self.autonomy_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
+		self.stability_sub = rospy.Subscriber("/stabilityWrench", Wrench, self.stabilityWrench)
+
 		self.depth_mode_pub = rospy.Publisher("/thrusters/depthMode", StabilityMode, queue_size=1)
 		self.angle_mode_pub = rospy.Publisher("/thrusters/angleMode", StabilityMode, queue_size=1)
 
+		self.torpedo1_pub = rospy.Publisher("/Torpedo1", Bool, queue_size=10)
+		self.torpedo2_pub = rospy.Publisher("/Torpedo2", Bool, queue_size=10)
+
 	def translateCb(self, msg):
 		if(len(msg.axes) < 5):
-			rospy.loginfo("JOYSTICK ERROR: Not enough axes")
+			rospy.logerror("JOYSTICK ERROR: Not enough axes")
 			return
 
 		self.twistMsg.force.x = msg.axes[1] * 7
@@ -60,12 +65,13 @@ class ThrusterControl:
 			self.stabilityMode.mode = self.stabilityMode.off
 			self.depth_mode_pub.publish(self.stabilityMode)
 
-		rospy.loginfo("TRANSLATION UPDATED")
+		self.torpedo1_pub.publish(Bool(msg.buttons[0] > 0.5 and msg.buttons[1] > 0.5))
+		rospy.logdebug("TRANSLATION UPDATED")
 
 
 	def rotateCb(self, msg):
 		if(len(msg.axes) < 5):
-			rospy.loginfo("JOYSTICK ERROR: Not enough axes")
+			rospy.logerror("JOYSTICK ERROR: Not enough axes")
 			return
 		self.twistMsg.torque.x = msg.axes[0] * -7
 		self.twistMsg.torque.y = msg.axes[1] * -7
@@ -91,8 +97,8 @@ class ThrusterControl:
 			self.stabilityMode.mode = self.stabilityMode.off
 			self.stabilityMode.yawEnabled = self.yawEnabled
 			self.angle_mode_pub.publish(self.stabilityMode)
-
-		rospy.loginfo("ROTATION UPDATED")
+		self.torpedo2_pub.publish(Bool(msg.buttons[0] > 0.5 and msg.buttons[1] > 0.5))
+		rospy.logdebug("ROTATION UPDATED")
 
 	def republishWrench(self, msg):
 		if self.autonomyEnabled > 0:

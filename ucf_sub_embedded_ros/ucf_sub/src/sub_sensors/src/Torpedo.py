@@ -1,28 +1,39 @@
 import gpio
 import rospy
+import time
 from std_msgs.msg import Bool
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 
 CHANNEL1 = 394
-CHANNEL2 = 395
-GPIO.setup(CHANNEL1, gpio.OUT)
-GPIO.setup(CHANNEL2, gpio.OUT)
-freq = rospy.Rate(10)
+CHANNEL2 = 393
+gpio.setup(CHANNEL1, gpio.OUT)
+gpio.setup(CHANNEL2, gpio.OUT)
+
+FIRETIME = 0.04
+
+t1Last = False
+t2last = False
 
 def fireTorp1(data):
-	gpio.output(CHANNEL1, True)
-	freq.sleep()
-	gpio.output(CHANNEL1, False)
+	global t1Last
+	if data.data and not t1Last:
+		gpio.output(CHANNEL1, True)
+		time.sleep(FIRETIME)
+		gpio.output(CHANNEL1, False)
+	t1Last = data.data
 
 def fireTorp2(data):
-	gpio.output(CHANNEL2, True)
-	freq.sleep()
-	gpio.output(CHANNEL2, False)
+	global t2Last
+	if data.data and not t2Last:
+		gpio.output(CHANNEL2, True)
+		time.sleep(FIRETIME)
+		gpio.output(CHANNEL2, False)
+	t2Last = data.data
 
 def start():
+	rospy.init_node('TorpedoWatcher', anonymous=True)
 	rospy.Subscriber('Torpedo1', Bool, fireTorp1)
 	rospy.Subscriber('Torpedo2', Bool, fireTorp2)
-	rospy.init_node('TorpedoWatcher', anonymous=True)
 	rospy.spin()
 
 if __name__ == '__main__':
