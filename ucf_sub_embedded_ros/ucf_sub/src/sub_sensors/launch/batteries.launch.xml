@@ -1,0 +1,5 @@
+<!-- Launch file to start reading data from our depth sensor -->
+<launch>
+    <node name="battery_monitor_driver" pkg="sub_sensors" type="FuelGauge.py"/>
+</launch>
+
