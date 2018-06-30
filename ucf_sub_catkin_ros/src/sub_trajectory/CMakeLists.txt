@@ -14,6 +14,7 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
    FILES
    ThrusterStatus.msg
    ThrusterCmd.msg
+   StabilityMode.msg
  )
 
 ## Generate services in the 'srv' folder
