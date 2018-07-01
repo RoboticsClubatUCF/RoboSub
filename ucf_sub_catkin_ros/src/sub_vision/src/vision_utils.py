@@ -4,14 +4,14 @@ import cv2
 import heapq
 
 def Thresholds(upperThresh=(255,255,255), lowerThresh=(0,0,0)):
-	upper = upperThresh
-        lower = lowerThresh
+    upper = upperThresh
+    lower = lowerThresh
 
 def contourCircularity(contour):
     perimeter = cv2.arcLength(contour, True)
     area = cv2.contourArea(contour)
     
-    radius = sqrt(area/3.14159)
+    radius = np.sqrt(area/3.14159)
     ratio = perimeter/(2*radius*3.14159)
     
     return min(ratio, 1/ratio) 
