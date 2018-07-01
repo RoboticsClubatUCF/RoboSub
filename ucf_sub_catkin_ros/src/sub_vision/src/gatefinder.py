@@ -11,6 +11,19 @@ def angle_cos(p0, p1, p2):
     d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
     return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
 
+
+def nlargest(n, contours, key):
+    largestContours = []
+    if key == cv2.contourArea:
+    	sortedContours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+    	for i in range(n):
+        	largestContours.append(sortedContours[i])
+    return largestContours
+
+def greatestNAreaContours(contours, n):
+	return nlargest(n, contours, key=cv2.contourArea)
+
 class GateFinder:
     def __init__(self):
         pass
@@ -40,7 +53,10 @@ class GateFinder:
     def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel):
 
         imageHSV = cv2.cvtColor(imageRightRect, cv2.COLOR_BGR2HSV)
-        contours, _ = ThreshAndContour(imageHSV, Thresholds(upper=(40,52,120), lower=(20, 30, 80)))
+	mask=cv2.inRange(imageRightRect, np.array([20,30,80],dtype='uint8'),np.array([40,52,120],dtype='uint8'))
+	output = cv2.bitwise_and(imageRightRect, imageRightRect, mask=mask)
+	cnts = cv2.findContours(mask.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)	
+	contours = cnts[1]
 
         if len(contours) == 0:
             return None
