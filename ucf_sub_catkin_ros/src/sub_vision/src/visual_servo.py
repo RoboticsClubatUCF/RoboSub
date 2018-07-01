@@ -104,7 +104,7 @@ class visual_servo:
             goal.objectType = goal.pole
             self.vision_client.send_goal(goal)
 
-        while self.running:
+        while self.running and not rospy.is_shutdown():
             if self.server.is_preempt_requested() or self.server.is_new_goal_available():
                 self.running = False
                 continue
@@ -129,7 +129,7 @@ class visual_servo:
                 if self.distance_to_object(msg.width) >= self.maintainedDistance:
                     int_matrix = self.interaction_matrix([1,5], x,y)
                     int_matrix = int_matrix[:,[1,5]]
-                    forces = np.matmul(np.linalg.pinv(int_matrix), coordinates+self.translationUnits)
+                    forces = np.matmul(np.linalg.pinv(int_matrix), coordinates + self.translationUnits)
                     self.message.force.x = self.speed
                     self.message.force.y = forces[0]
                     self.message.force.z = self.Depth
