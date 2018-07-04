@@ -159,8 +159,8 @@ class VisionServer:
         self.leftModel.fromCameraInfo(msg.info)
 
     def loadThresholds(self):
-        with open(os.path.dirname(__file__) + '/../thresholds.json') as data_file:
-            json_data = json.load(data_file)
+        #with open(os.path.dirname(__file__) + '/../thresholds.json') as data_file:
+            #json_data = json.load(data_file)
         data = {}
         #for entry in json_data:
             # high = entry['high']
