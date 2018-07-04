@@ -70,7 +70,7 @@ class SubStates:
 			# Path to Slot machine task
 			smach.StateMachine.add("PATHTOSLOTS", pathToSlots(),
 					       transitions={'preempted':'preempted',
-							    'success':''SLOTS',
+							    'success':'SLOTS',
 							    'failure':'PATHTOSLOTS'})
 
 			# Slot machine task
@@ -93,7 +93,7 @@ class SubStates:
 			smach.StateMachine.add("PINGERTOCASHOUT", pingerToCashOut(),
 					       transitions={'preempted':'preempted',
 							    'success':'CASHOUT',
-							    'failure':'PINGERTOCASHOUT'
+							    'failure':'PINGERTOCASHOUT'})
 
                         # Cashout task
                         smach.StateMachine.add("CASHOUT", cashout(),

@@ -23,15 +23,13 @@ class visual_servo:
         self.yThreshold = 0
 
         self.lam = 1
+        self.translationUnits = None #TODO What is this
 
         self.message = Wrench()
 
         self.response = VisualServoResult()
 
         self.goal = VisualServoGoal()
-
-        self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
-        self.vision_client.wait_for_server()
 
         self.camera_info = None
 
@@ -45,6 +43,9 @@ class visual_servo:
 
         self.startYaw = None
         self.FirstIMUCall = True
+
+        self.vision_client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
+        self.vision_client.wait_for_server()
 
         self.camera_info_pub = rospy.Subscriber("/stereo/right/camera_info", CameraInfo, self.initInfo)
         self.vision_feedback = rospy.Subscriber('/track_object/feedback', TrackObjectFeedback, self.servoing)
@@ -120,7 +121,7 @@ class visual_servo:
                 y = msg.feedback.center[1]
                 coordinates = np.array([x,y])
                 #Find distance to pole
-                interaction = None
+                #interaction = None
                 #coordinates = self.camera_info.projectPixelTo3dRay(msg.feedback.center)
                 #u = self.lam * (coordinates[0]/coordinates[2])
                 #v = self.lamb * (coordinates[1]/coordinates[2])
