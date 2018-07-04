@@ -26,3 +26,4 @@ CMakeLists.txt.user
 *.pyc
 
 ucf_sub_stm32/*/Drivers/
+.vscode
