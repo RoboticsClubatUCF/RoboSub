@@ -17,7 +17,7 @@ class SubStates:
 
 		with self.tasks:
 
-			smach.StateMachine.add('Start', self.gate, transitions={'POLE':self.pole, 'GATE':self.gate})
+			smach.StateMachine.add('Start', self.pole, transitions={'POLE':self.pole, 'GATE':self.gate})
 
 			with self.gate:
 				smach.StateMachine.add('LOCATE', gate.locate(),
