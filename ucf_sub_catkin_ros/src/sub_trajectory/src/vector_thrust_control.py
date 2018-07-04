@@ -5,6 +5,7 @@ from sub_trajectory.msg import ThrusterStatus, ThrusterCmd
 from geometry_msgs.msg import Wrench
 
 import numpy as np
+import math, time
 from scipy.optimize import minimize
 
 def rosToArray(msg): #Convert a ros message with 1-4 dimensions into a numpy array
@@ -47,10 +48,6 @@ class VectorController:
             
         self.thrustToWrench = np.transpose(np.array(B)) #Convert our list of rows to the transpose of the thrustToWrench then take the transpose of that
         self.wrenchToThrust = np.linalg.pinv(self.thrustToWrench) #This is where the magic happens. The pseudoinverse is like an inverse but works for non-square matricies
-        
-        #Log the latest control matricies at most every 3 seconds
-        rospy.logdebug("\n" + str(self.thrustToWrench))
-        rospy.logdebug("\n" + str(self.wrenchToThrust))
         
         self.setupPowerCoeffs()
     
@@ -96,45 +93,33 @@ class VectorController:
                 j = 0 if u[i] > 0 else 1
                 powerCost +=  self.A[i][j] * u[i] * u[i] + self.B[i][j] * u[i]#apply a polynomial from bluerobotics data for the t200 power consumption
                 
-            return powerCost * 0.01
+            return powerCost * 0.001
             
-        def powerJacobian(u):
-            powerJac = np.array(u)
-            
-            for i in sorted(self.thrusterData):
-                j = 0 if u[i] > 0 else 1
-                powerJac[i] = self.A[i][j] * u[i] + self.B[i][j]
-                
-            return powerJac * 0.01
-            
+        #Optimizer objective function that tries to minimize the difference in angle between the desired and actual wrench, then the magnitude, then the power usage
         def objective(u):
-            #Use UF's method here for our cost function but we'll probably add some factor to weight error vs effort
-            errorCost = np.linalg.norm(self.thrustToWrench.dot(u) - desiredWrench) ** 2 #sum of the squares of the errors in the output wrench
+            #Originally based off of UF's cost function but changed to consider the direction of the output as more important
+            errorCost = 0.01 * np.linalg.norm(self.thrustToWrench.dot(u) - desiredWrench) #sum of the squares of the errors in the output wrench
             
+            #Extend things a little by also considering the angle of the error
+            #This seems to only improve things when tol is rather high
+            if abs((np.linalg.norm(self.thrustToWrench.dot(u))*np.linalg.norm(desiredWrench))) > 0.001:
+                errorCost -= abs(np.inner(self.thrustToWrench.dot(u),desiredWrench)/(np.linalg.norm(self.thrustToWrench.dot(u))*np.linalg.norm(desiredWrench)))
             #Returns a single cost number
             return errorCost + powerCost(u) #TODO relative importance factor?
-            
-        def jacobian(u):
-            errorJacobian = 2 * self.thrustToWrench.T.dot(self.thrustToWrench.dot(u)-desiredWrench) #2 times thruster matrix times wrench error
-            #powerJacobian = 2 * self.A.dot(u) + self.B #Derivative of power polynomial
-            
-            #Returns an array of the partial derivatives at point u
-            return errorJacobian + powerJacobian(u)
             
         if optimize:
             #TODO: SLSQP vs other methods?
             #TODO: per thruster bounds? (Good for when we kill the t200s and have to slap on seabotix)
-            #Impact of tol and x0 on runtime? x0 doesnt seem appreciable, tol changes a little but not much
+            #tol should be low enough to make it actually have to optimize
+            #TODO: tol/x0 on accuracy and runtime
             #What happens if x0 is out of bounds? A: The optimizer ignores the bounds
-             minimized = minimize(
+            minimized = minimize(
                 fun=objective,
-                x0=0.0*pinvOutput,
+                x0=0.2*pinvOutput/np.linalg.norm(pinvOutput),
                 method="SLSQP",
-                jac=jacobian,
-                bounds=[(-0.2,0.2) for x in self.thrusterData],
-                tol=0.05)
-             rospy.loginfo("Optimized error: " + str(np.linalg.norm(desiredWrench - self.thrustToWrench.dot(minimized.x))))
-        #rospy.loginfo("pinv: " + str(pinvOutput))
+                jac=False,#jacobian,
+                bounds=[(-0.2,0.2) for _ in self.thrusterData],
+                tol=0.0001)
         
         message = ThrusterCmd()
         actualMsg = Wrench()
@@ -156,6 +141,7 @@ class VectorController:
         
         self.actualWrenchPub.publish(actualMsg)
         self.thrustPublisher.publish(message)
+
     def thrusterStatusCb(self, msg):
         needToUpdate = False #Flag set true if something happened that requires a control matrix update
         if not self.thrusterStatuses.has_key(msg.thrusterChannel): #If we've never had a message from this thruster before, update the control matrix
