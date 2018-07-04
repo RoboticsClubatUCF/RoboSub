@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cstdio>
 
-#define LINEARIZE_OUTPUT
+//#define LINEARIZE_OUTPUT
 
 constexpr double T200Thruster::CURRENT_SCALE_FACTOR;
 constexpr double T200Thruster::VOLTAGE_SCALE_FACTOR;
@@ -35,7 +35,7 @@ void T200Thruster::setVelocityRatio(double velocity_ratio, T200ThrusterDirection
 
     // Negative values are interpreted by the thruster as reverse direction.
     if (direction == T200ThrusterDirections::Reverse)
-        velocity_ratio *= -1.0;
+        velocity_ratio *= -1.0; 
 
 #ifdef LINEARIZE_OUTPUT
     velocity_ratio = linearizeOutput(velocity_ratio);
@@ -70,9 +70,9 @@ double T200Thruster::linearizeOutput(double velocity_desired)
 {
     double thruster_setting = 0.0;
 
-    if(velocity_desired > 0.01)
+    if(velocity_desired > 0.0)
         thruster_setting = velocity_desired*0.788+0.101;
-    else if(velocity_desired < -0.01)
+    else if(velocity_desired < 0.0)
         thruster_setting = velocity_desired*0.9-0.112;
     else
         thruster_setting = 0.0;
