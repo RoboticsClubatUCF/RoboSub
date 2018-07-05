@@ -120,28 +120,42 @@ public:
                 init();
                 loopCount = 0;
             }
-            for(auto& iter:thrusterMap)
+
+            if(thrusterMap.size() != savedMsg.cmd.size())
             {
                 diagnostic_msgs::DiagnosticStatus status;
                 status.name = "Thrusters";
-                status.hardware_id = "Thruster_"+std::to_string(iter.first);
-                try {
-                    iter.second->updateStatus();
-                    iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
-                } catch(I2CException e) {
-                    //Publish an error message for the diagnostic system to do something about
-                    status.level = status.ERROR;
-                } catch (std::out_of_range e) {
-                    ROS_ERROR("Thrusters command has not enough values");
-                }
-
-                if (thrusterOk(iter.second) && status.level != status.ERROR)
-                    status.level = status.OK;
-                else
-                    status.level = status.ERROR;
-
-                PushDiagData(status, iter.second, std::to_string(iter.first));
+                status.hardware_id = "Thrusters";
+                status.level = status.ERROR;
                 diag.status.push_back(status);
+                ROS_ERROR("Thrusters command has wrong number of values");
+            }
+            else
+            {
+                for(auto& iter:thrusterMap)
+                {
+                    diagnostic_msgs::DiagnosticStatus status;
+                    status.name = "Thrusters";
+                    status.hardware_id = "Thruster_"+std::to_string(iter.first);
+                    
+                    try {
+                        iter.second->updateStatus();
+                        iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
+                    } catch(I2CException e) {
+                        //Publish an error message for the diagnostic system to do something about
+                        status.level = status.ERROR;
+                    } catch (std::out_of_range e) {
+                        ROS_ERROR("Thrusters command has not enough values");
+                    }
+
+                    if (thrusterOk(iter.second) && status.level != status.ERROR)
+                        status.level = status.OK;
+                    else
+                        status.level = status.ERROR;
+
+                    PushDiagData(status, iter.second, std::to_string(iter.first));
+                    diag.status.push_back(status);
+                }
             }
 
             diagnostics_output.publish(diag);
