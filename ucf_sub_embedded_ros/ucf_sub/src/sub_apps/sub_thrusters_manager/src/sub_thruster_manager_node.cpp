@@ -27,6 +27,7 @@ class ThrusterManager {
     std::map<int, std::unique_ptr<GenericThruster>> thrusterMap;
 
     int updateRate;
+    int expectedThrusters;
 
     ros::ServiceServer initServer;
 
@@ -77,6 +78,7 @@ public:
 
         savedMsg = sub_trajectory::ThrusterCmd();
         savedMsg.cmd.resize(thrustersJson.size(), 0.0);
+        expectedThrusters = thrustersJson.size();
 
         diagnostic_msgs::DiagnosticArray diag;
 
@@ -109,9 +111,15 @@ public:
     {
         diagnostic_msgs::DiagnosticArray diag;
         ros::Rate rate(updateRate);
+        int loopcount;
         while(ros::ok()) {
             //Publish diagnostic data here
             ROS_DEBUG("Updating thrusters");
+            if(loopCount++ > updateRate*2 && thrusterMap.size() < expectedThrusters)
+            {
+                init();
+                loopCount = 0;
+            }
             for(auto& iter:thrusterMap)
             {
                 diagnostic_msgs::DiagnosticStatus status;
