@@ -52,16 +52,16 @@ public:
     {
         ifstream configFile(filename);
         if(!configFile.is_open()){
-            ROS_ERROR("%s thruster controller couldn't open config file", SUB_SECTION_NAME);
+            ROS_ERROR("Thruster controller couldn't open config file");
             //status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Config file didn't load");
             Json::Value obj;
             return obj;
         }
 
-        ROS_INFO("%s thruster controller config loading", SUB_SECTION_NAME);
+        ROS_INFO("Thruster controller config loading");
         Json::Value obj;
         configFile >> obj;
-        ROS_INFO("%s thruster controller config loaded", SUB_SECTION_NAME);
+        ROS_INFO("Thruster controller config loaded");
         return obj;
     }
     bool initService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp)
@@ -73,7 +73,7 @@ public:
     void init()
     {
         thrusterMap.clear();
-        Json::Value thrustersJson = loadConfig("config.json")[SUB_SECTION_NAME];
+        Json::Value thrustersJson = loadConfig("config.json")["COMPUTE"];
 
         savedMsg = sub_trajectory::ThrusterCmd();
         savedMsg.cmd.resize(thrustersJson.size(), 0.0);
@@ -97,7 +97,7 @@ public:
                 status.name = "Thrusters";
                 status.hardware_id = "Thrusters_"+thrustersJson[i]["Address"].asString();
                 status.level = status.ERROR;
-                diag.status.push(status)
+                diag.status.push_back(status)
             }
         }
         diagnostics_output.publish(diag);
@@ -116,7 +116,7 @@ public:
             {
                 diagnostic_msgs::DiagnosticStatus status;
                 status.name = "Thrusters";
-                status.hardware_id = "Thruster_"+std::string(iter.first);
+                status.hardware_id = "Thruster_"+std::to_string(iter.first);
                 try {
                     iter.second->updateStatus();
                     iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
@@ -131,7 +131,7 @@ public:
                     status.level = status.ERROR;
 
                 PushDiagData(status, iter.second, std::to_string(iter.first));
-                diag.status.push(status);
+                diag.status.push_back(status);
             }
 
             diagnostics_output.publish(diag);
@@ -181,7 +181,7 @@ public:
     {
         self_test_.setID("thrusterController");
         std::stringstream failedThrusters;
-        Json::Value& thrustersJson = loadConfig("config.json")[SUB_SECTION_NAME];
+        Json::Value& thrustersJson = loadConfig("config.json")["COMPUTE"];
         for(int i = 0; i < thrustersJson.size(); i++)
 		{
             int thrusterID = thrustersJson[i]["ID"].asInt();
