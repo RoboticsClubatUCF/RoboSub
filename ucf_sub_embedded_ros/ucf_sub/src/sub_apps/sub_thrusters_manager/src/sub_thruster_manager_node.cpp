@@ -97,7 +97,7 @@ public:
                 status.name = "Thrusters";
                 status.hardware_id = "Thrusters_"+thrustersJson[i]["Address"].asString();
                 status.level = status.ERROR;
-                diag.status.push_back(status)
+                diag.status.push_back(status);
             }
         }
         diagnostics_output.publish(diag);
