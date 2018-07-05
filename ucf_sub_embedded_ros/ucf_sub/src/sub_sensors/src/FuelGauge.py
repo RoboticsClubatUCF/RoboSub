@@ -112,7 +112,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         fg.read()
         msg.voltage = fg.voltage
-        msg.current = fg.current/1000
+        msg.current = fg.current
         msg.charge = fg.charge/1000
         
         if msg.current < 0:
