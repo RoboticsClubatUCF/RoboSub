@@ -111,7 +111,7 @@ public:
     {
         diagnostic_msgs::DiagnosticArray diag;
         ros::Rate rate(updateRate);
-        int loopcount;
+        int loopCount;
         while(ros::ok()) {
             //Publish diagnostic data here
             ROS_DEBUG("Updating thrusters");
@@ -131,6 +131,8 @@ public:
                 } catch(I2CException e) {
                     //Publish an error message for the diagnostic system to do something about
                     status.level = status.ERROR;
+                } catch (std::out_of_range e) {
+                    ROS_ERROR("Thrusters command has not enough values");
                 }
 
                 if (thrusterOk(iter.second) && status.level != status.ERROR)
