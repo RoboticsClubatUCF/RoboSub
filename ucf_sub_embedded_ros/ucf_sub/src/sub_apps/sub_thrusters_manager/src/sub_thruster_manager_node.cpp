@@ -96,8 +96,8 @@ public:
                 thrusterMap.erase(i);
                 //Publish an error message for the diagnostic system to do something about
                 diagnostic_msgs::DiagnosticStatus status;
-                status.name = "Thrusters";
-                status.hardware_id = "Thrusters_"+thrustersJson[i]["Address"].asString();
+                status.name = "Thruster_"+thrustersJson[i]["Address"].asString();
+                status.hardware_id = "Thruster_"+thrustersJson[i]["Address"].asString();
                 status.level = status.ERROR;
                 diag.status.push_back(status);
             }
@@ -134,7 +134,7 @@ public:
                 for(auto& iter:thrusterMap)
                 {
                     diagnostic_msgs::DiagnosticStatus status;
-                    status.name = "Thrusters";
+                    status.name = "Thruster_"+std::to_string(iter.first);
                     status.hardware_id = "Thruster_"+std::to_string(iter.first);
                     
                     try {
