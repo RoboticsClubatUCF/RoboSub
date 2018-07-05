@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(sub_trajectory)
 
 find_package(catkin REQUIRED COMPONENTS message_generation rospy roscpp)
-find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
+find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs dynamic_reconfigure)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -34,6 +34,10 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
    GoToPose.action
    ExecuteWaypoint.action
  )
+
+generate_dynamic_reconfigure_options(
+  cfg/active_stability.cfg
+)
 
 ## Generate added messages and services with any dependencies listed here
  generate_messages(
