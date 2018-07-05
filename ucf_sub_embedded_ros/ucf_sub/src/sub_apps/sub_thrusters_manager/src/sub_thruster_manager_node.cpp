@@ -109,11 +109,10 @@ public:
 
     void spin()
     {
-        diagnostic_msgs::DiagnosticArray diag;
         ros::Rate rate(updateRate);
         int loopCount;
         while(ros::ok()) {
-            //Publish diagnostic data here
+            diagnostic_msgs::DiagnosticArray diag;
             ROS_DEBUG("Updating thrusters");
             if(loopCount++ > updateRate*2 && thrusterMap.size() < expectedThrusters)
             {
