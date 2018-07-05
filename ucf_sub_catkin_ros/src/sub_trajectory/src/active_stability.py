@@ -62,7 +62,7 @@ class ActiveStabilizer():
 		
 		elif self.curDepthMode == modes.velocity.value:
 			quat = rosToArray(msg.pose.pose.orientation)
-			counterVec = rotateVector(quat, [0,0,-10*msg.twist.twist.linear.z])
+			counterVec = rotateVector(quat, [0,0,-1*msg.twist.twist.linear.z])
 			self.stabilityWrench.force.x = counterVec[0]
 			self.stabilityWrench.force.y = counterVec[1]
 			self.stabilityWrench.force.z = counterVec[2]
@@ -74,7 +74,7 @@ class ActiveStabilizer():
 			error = msg.pose.pose.position.z - self.targetDepth
 			quat = rosToArray(msg.pose.pose.orientation)
 			quat = tf.transformations.quaternion_conjugate(quat)
-			counterVec = rotateVector(quat, [0,0,-10*error])
+			counterVec = rotateVector(quat, [0,0,-1*error])
 			print(counterVec)
 			self.stabilityWrench.force.x = counterVec[0]
 			self.stabilityWrench.force.y = counterVec[1]
@@ -91,8 +91,8 @@ class ActiveStabilizer():
 			self.stabilityWrench.torque.z = 0
 		
 		elif self.curAngleMode == modes.velocity.value:
-			self.stabilityWrench.torque.x = -msg.twist.twist.angular.x * 10
-			self.stabilityWrench.torque.y = -msg.twist.twist.angular.y * 10
+			self.stabilityWrench.torque.x = -msg.twist.twist.angular.x
+			self.stabilityWrench.torque.y = -msg.twist.twist.angular.y
 
 			if self.yawEnabled:
 				self.stabilityWrench.torque.z = -msg.twist.twist.angular.z
@@ -115,10 +115,10 @@ class ActiveStabilizer():
 			#) #Rotate rotation from current to target by rotation from world to sub
 
 			rpy = tf.transformations.euler_from_quaternion(error)
-			self.stabilityWrench.torque.x = rpy[0]
-			self.stabilityWrench.torque.y = rpy[1]
+			self.stabilityWrench.torque.x = rpy[0] * 0.01
+			self.stabilityWrench.torque.y = rpy[1] * 0.1
 			if self.yawEnabled:
-				self.stabilityWrench.torque.z = rpy[2]
+				self.stabilityWrench.torque.z = rpy[2] * 0.1
 			else:
 				self.stabilityWrench.torque.z = 0.0
 
