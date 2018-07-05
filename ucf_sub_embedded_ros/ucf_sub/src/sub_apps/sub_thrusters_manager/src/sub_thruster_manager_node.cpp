@@ -14,9 +14,6 @@
 #include <fstream>
 #include <memory>
 
-//TODO: Determine module name at runtime (needs some capemgr fuckery)
-#define SUB_SECTION_NAME "COMPUTE"
-
 inline const std::string BoolToString(const bool b); //http://stackoverflow.com/a/29798
 
 class ThrusterManager {
@@ -27,14 +24,9 @@ class ThrusterManager {
 
     sub_trajectory::ThrusterCmd savedMsg;
 
-//    std::map<int, GenericThruster> thrusterMap;
-
     std::map<int, std::unique_ptr<GenericThruster>> thrusterMap;
 
-
-
-//std::map<int, std::unique_ptr<element>> elementMap;
-//elementMap[17] = std::unique_ptr<element>(new elasticFrame3D(3.14, 2.71));
+    int updateRate;
 
     ros::ServiceServer initServer;
 
@@ -47,14 +39,13 @@ public:
 
         command_subscriber = nh_.subscribe("/thrusters/cmd_vel", 1000, &ThrusterManager::thrusterCb, this);
 
-        diagnostics_output = nh_.advertise<diagnostic_msgs::DiagnosticStatus>("/diagnostics", 1000);
+        diagnostics_output = nh_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1000);
 
         self_test_.add("Test connections", this, &ThrusterManager::testThrusterConnections);
 
         initServer = nh_.advertiseService("initThrusters", &ThrusterManager::initService, this);
 
-    	//thrusterMap[0] = T200Thruster(1, 0x2D);
-    	//thrusterMap[1] = T200Thruster(1, 0x2E); //This should keep a reference? The copy disabling thing should keep us safe
+    	nh_.param("/updateRate", updateRate, 30);
     }
 
     Json::Value loadConfig(std::string filename)
@@ -83,8 +74,12 @@ public:
     {
         thrusterMap.clear();
         Json::Value thrustersJson = loadConfig("config.json")[SUB_SECTION_NAME];
+
         savedMsg = sub_trajectory::ThrusterCmd();
         savedMsg.cmd.resize(thrustersJson.size(), 0.0);
+
+        diagnostic_msgs::DiagnosticArray diag;
+
         for(int i = 0; i < thrustersJson.size(); i++) {
             int thrusterID = thrustersJson[i]["ID"].asInt();
             int thrusterType = thrustersJson[i]["Type"].asInt(); //TODO: support for multiple thruster types
@@ -100,26 +95,28 @@ public:
                 //Publish an error message for the diagnostic system to do something about
                 diagnostic_msgs::DiagnosticStatus status;
                 status.name = "Thrusters";
-                status.hardware_id = "Thrusters";
+                status.hardware_id = "Thrusters_"+thrustersJson[i]["Address"].asString();
                 status.level = status.ERROR;
-                diagnostics_output.publish(status);
-                ros::spinOnce();
+                diag.status.push(status)
             }
         }
+        diagnostics_output.publish(diag);
+        ros::spinOnce();
         ROS_INFO("Done initializing thrusters");
     }
 
     void spin()
     {
-        ros::Rate rate(10);
+        diagnostic_msgs::DiagnosticArray diag;
+        ros::Rate rate(updateRate);
         while(ros::ok()) {
             //Publish diagnostic data here
-            diagnostic_msgs::DiagnosticStatus status;
-            status.name = "Thrusters";
-            status.hardware_id = "Thrusters"; //TODO: Different hardware ID/section based on sub section name?
             ROS_DEBUG("Updating thrusters");
             for(auto& iter:thrusterMap)
             {
+                diagnostic_msgs::DiagnosticStatus status;
+                status.name = "Thrusters";
+                status.hardware_id = "Thruster_"+std::string(iter.first);
                 try {
                     iter.second->updateStatus();
                     iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
@@ -134,9 +131,10 @@ public:
                     status.level = status.ERROR;
 
                 PushDiagData(status, iter.second, std::to_string(iter.first));
+                diag.status.push(status);
             }
 
-            diagnostics_output.publish(status);
+            diagnostics_output.publish(diag);
             ros::spinOnce();
             self_test_.checkTest();
             rate.sleep();
