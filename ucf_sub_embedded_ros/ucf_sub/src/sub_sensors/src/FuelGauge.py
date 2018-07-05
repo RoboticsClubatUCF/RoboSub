@@ -92,7 +92,29 @@ class FuelGauge:
         except:
 	        raise IOError("Could not read data from device at %s" % self.address)
 	        
-	
+def populateBatteryMessage(msg, fg):
+    msg.voltage = fg.voltage
+    msg.current = fg.current
+    msg.charge = fg.charge/1000
+    
+    if msg.current < 0:
+        msg.power_supply_status = msg.POWER_SUPPLY_STATUS_DISCHARGING
+    elif msg.current > 0:
+        msg.power_supply_status = msg.POWER_SUPPLY_STATUS_CHARGING
+        
+    if fg.temperature > 60:
+        msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_OVERHEAT
+    elif fg.temperature < 0:
+        msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_COLD
+    else:
+        msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_GOOD
+        
+    msg.percentage = 1+(msg.charge/msg.design_capacity)
+    
+    msg.header.stamp = rospy.Time.from_sec(fg.timestamp.timestamp())
+
+    return msg
+
 if __name__ == "__main__":
     import rospy
     from sensor_msgs.msg import BatteryState
@@ -111,24 +133,6 @@ if __name__ == "__main__":
     
     while not rospy.is_shutdown():
         fg.read()
-        msg.voltage = fg.voltage
-        msg.current = fg.current
-        msg.charge = fg.charge/1000
-        
-        if msg.current < 0:
-            msg.power_supply_status = msg.POWER_SUPPLY_STATUS_DISCHARGING
-        elif msg.current > 0:
-            msg.power_supply_status = msg.POWER_SUPPLY_STATUS_CHARGING
-            
-        if fg.temperature > 60:
-            msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_OVERHEAT
-        elif fg.temperature < 0:
-            msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_COLD
-        else:
-            msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_GOOD
-            
-        msg.percentage = 1+(msg.charge/msg.design_capacity)
-        
-        msg.header.stamp = rospy.Time.from_sec(fg.timestamp.timestamp())
+        msg = populateBatteryMessage(msg, fg)
         batPub.publish(msg)
         r.sleep()
