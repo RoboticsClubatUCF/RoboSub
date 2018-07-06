@@ -120,19 +120,30 @@ if __name__ == "__main__":
     from sensor_msgs.msg import BatteryState
     
     rospy.init_node('BatteryMonitor')
-    fg = FuelGauge(address=0x64, bus=1)
-    fg.initSensor(256)
+    fg1 = FuelGauge(address=0x64, bus=1)
+    fg1.initSensor(256)
     
+    fg2 = FuelGauge(address=0x65, bus=1)
+    fg2.initSensor(256)
+
     r = rospy.Rate(4)
     
-    batPub = rospy.Publisher("/BatteryStatus", BatteryState, queue_size = 10)
+    bat1Pub = rospy.Publisher("/battery1Status", BatteryState, queue_size = 10)
+    bat2Pub = rospy.Publisher("/battery2Status", BatteryState, queue_size = 10)
+
     msg = BatteryState()
-    msg.header.frame_id = "battery1"
     msg.design_capacity = 12.6
     msg.power_supply_technology = msg.POWER_SUPPLY_TECHNOLOGY_LIPO
     
     while not rospy.is_shutdown():
-        fg.read()
-        msg = populateBatteryMessage(msg, fg)
-        batPub.publish(msg)
+        fg1.read()
+        msg.header.frame_id = "battery1"
+        msg = populateBatteryMessage(msg, fg1)
+        bat1Pub.publish(msg)
+
+        fg2.read()
+        msg.header.frame_id = "battery2"
+        msg = populateBatteryMessage(msg, fg2)
+        bat2Pub.publish(msg)
+
         r.sleep()
