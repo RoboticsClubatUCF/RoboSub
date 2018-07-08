@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 from enum import Enum
-import math
+import math, time
 
 from nav_msgs.msg import Odometry
 from sub_trajectory.msg import StabilityMode
@@ -35,11 +35,19 @@ class ActiveStabilizer():
 		self.targetDepth = None
 		self.targetOrientation = None
 
+		self.lastUpdateTime = None
+
 		self.depthVelGain = 1
-		self.depthPosGain = 1
+		self.depthPosGain = [1, 0, 1]
+		self.depthLastPos = None
+		self.depthIntegratedError = 0
+		self.depthMaxForce = None
 
 		self.orientVelGain = 1
-		self.orientPosGain = 0.1
+		self.orientPosGain = [1, 0, 1]
+		self.orientLastPos = None
+		self.orientIntegratedError = [0,0,0]
+		self.orientMaxForce = None
 
 		self.reconfigureServer = Server(StabilityConfig, self.reconfigureCallback)
 
@@ -53,10 +61,16 @@ class ActiveStabilizer():
 
 	def reconfigureCallback(self, config, level):
 		self.depthVelGain = config["depth_vel_P"]
-		self.depthPosGain = config["depth_pos_P"]
+		self.depthPosGain = [config["depth_pos_P"],
+							config["depth_pos_I"],
+							config["depth_pos_D"]]
+		self.depthMaxForce = config["depth_pos_Max"]
 		
 		self.orientVelGain = config["orientation_vel_P"]
-		self.orientPosGain = config["orientation_pos_P"]
+		self.orientPosGain = [config["orientation_pos_P"],
+							config["orientation_pos_I"],
+							config["orientation_pos_D"]]
+		self.orientMaxForce = config["orientation_pos_Max"]
 
 		return config
 
@@ -80,6 +94,15 @@ class ActiveStabilizer():
 			self.saveOrientation = True
 
 	def callback(self, msg):
+		timeNow = rospy.get_time()
+		
+		#TODO: How to reset the error integrations?
+		if self.depthLastPos is None or self.curDepthMode is not StabilityMode.position:
+			self.depthLastPos = msg.pose.pose.position.z
+		
+		if self.orientLastPos is None or self.curAngleMode is not StabilityMode.position:
+			self.orientLastPos = np.array([0,0,0])
+
 		if self.curDepthMode == StabilityMode.off:
 			self.stabilityWrench.force.x = 0
 			self.stabilityWrench.force.y = 0
@@ -97,9 +120,27 @@ class ActiveStabilizer():
 				self.targetDepth = msg.pose.pose.position.z
 				self.saveDepth = False
 			error = msg.pose.pose.position.z - self.targetDepth
+			
+			proportionalCorrection = -self.depthPosGain[0]*error
+			integralCorrection = 0
+			derivativeCorrection = 0
+			
+			#TODO: Should we actually use the update time for this stuff?
+			if self.lastUpdateTime is not None:
+				#Depth derivative computation
+				derivativeCorrection = -self.depthPosGain[2] * (msg.pose.pose.position.z - self.depthLastPos) / (timeNow - self.lastUpdateTime)
+				self.depthLastPos = msg.pose.pose.position.z
+
+				self.depthIntegratedError += error * (timeNow - self.lastUpdateTime)
+				integralCorrection = -self.depthPosGain[1] * self.depthIntegratedError
+				#Back-calculation integrator windup prevention
+				if abs(proportionalCorrection + derivativeCorrection + integralCorrection) > self.depthMaxForce:
+					self.depthIntegratedError = ((np.sign(error)*self.depthMaxForce) - derivativeCorrection - proportionalCorrection)/self.depthPosGain[1]
+					
+
 			quat = rosToArray(msg.pose.pose.orientation)
 			quat = tf.transformations.quaternion_conjugate(quat)
-			counterVec = rotateVector(quat, [0,0,-self.depthPosGain*error])
+			counterVec = rotateVector(quat, [0,0,proportionalCorrection + derivativeCorrection + integralCorrection])
 			print(counterVec)
 			self.stabilityWrench.force.x = counterVec[0]
 			self.stabilityWrench.force.y = counterVec[1]
@@ -139,11 +180,29 @@ class ActiveStabilizer():
 			#	error, rosToArray(msg.pose.orientation)
 			#) #Rotate rotation from current to target by rotation from world to sub
 
-			rpy = tf.transformations.euler_from_quaternion(error)
-			self.stabilityWrench.torque.x = rpy[0] * 0.1 * self.orientPosGain
-			self.stabilityWrench.torque.y = rpy[1] * self.orientPosGain
+			rpyError = tf.transformations.euler_from_quaternion(error)
+
+			proportionalCorrection = -self.orientPosGain[0]*rpyError
+			integralCorrection = np.array([0,0,0])
+			derivativeCorrection = np.array([0,0,0])
+			
+			#TODO: Should we actually use the update time for this stuff?
+			if self.lastUpdateTime is not None:
+				#Depth derivative computation
+				derivativeCorrection = -self.orientPosGain[2] * (rpyError - self.orientLastPos) / (timeNow - self.lastUpdateTime)
+				self.orientLastPos = rpyError
+
+				self.orientIntegratedError += rpyError * (timeNow - self.lastUpdateTime)
+				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
+				#Back-calculation integrator windup prevention
+				for i in range(3):
+					if abs(proportionalCorrection[i] + derivativeCorrection[i] + integralCorrection[i]) > self.orientMaxForce:
+						self.orientIntegratedError[i] = ((np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/self.orientPosGain[1]
+
+			self.stabilityWrench.torque.x = proportionalCorrection[0] + derivativeCorrection[0] + integralCorrection[0]
+			self.stabilityWrench.torque.y = proportionalCorrection[1] + derivativeCorrection[1] + integralCorrection[1]
 			if self.yawEnabled:
-				self.stabilityWrench.torque.z = rpy[2] * self.orientPosGain
+				self.stabilityWrench.torque.z = proportionalCorrection[2] + derivativeCorrection[2] + integralCorrection[2]
 			else:
 				self.stabilityWrench.torque.z = 0.0
 
@@ -153,6 +212,7 @@ class ActiveStabilizer():
 			self.stabilityWrench.torque.z = 0
 
 		self.stabilityPublisher.publish(self.stabilityWrench)
+		self.lastUpdateTime = timeNow
 
 if __name__== "__main__":
 	rospy.init_node('ActiveStability', anonymous=False)
