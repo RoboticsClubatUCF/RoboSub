@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 from enum import Enum
+import math
 
 from nav_msgs.msg import Odometry
 from sub_trajectory.msg import StabilityMode
@@ -61,12 +62,20 @@ class ActiveStabilizer():
 
 	def depthModeCallback(self, msg):
 		self.curDepthMode = msg.mode
-		if self.curDepthMode != StabilityMode.position:
+
+		if math.isfinite(msg.target.z):
+			self.saveDepth = False
+			self.targetDepth = msg.target.z
+		elif self.curDepthMode != StabilityMode.position:
 			self.saveDepth = True
 
 	def angleModeCallback(self, msg):
 		self.yawEnabled = msg.yawEnabled
 		self.curAngleMode = msg.mode
+
+		if math.isfinite(msg.target.w):
+			self.saveOrientation = False
+			self.targetOrientation = rosToArray(msg.target)
 		if self.curAngleMode != StabilityMode.position:
 			self.saveOrientation = True
 
