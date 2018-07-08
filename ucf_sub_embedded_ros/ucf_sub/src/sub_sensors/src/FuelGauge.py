@@ -55,7 +55,6 @@ class FuelGauge:
     def initSensor(self, prescalar):
         if prescalar not in self.prescalarLookup:
             raise ValueError("Prescalar value not valid")
-            return
 	    
         self.prescalar = prescalar
 	    

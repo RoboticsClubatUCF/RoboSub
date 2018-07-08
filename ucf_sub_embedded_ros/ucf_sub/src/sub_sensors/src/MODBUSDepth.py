@@ -9,14 +9,17 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 def publish():
 	sensor = modbus(method='rtu', port='/dev/ucfsub/depth', baudrate=115200)
 	sensor.connect()
+
+	rospy.init_node('Depth')
 	tempPub = rospy.Publisher('ExternalTemperature', Temperature, queue_size=1)
 	depthPub = rospy.Publisher('depth', Float32, queue_size=1)
 	posePub = rospy.Publisher('/depth/pose', PoseWithCovarianceStamped, queue_size=1)
-	rospy.init_node('Depth')
+	
 	temp = Temperature()
 	depth = Float32()
 	
-	freq = rospy.Rate(20)
+	updateRate = rospy.get_param("/updateRate", 30)
+	freq = rospy.Rate(updateRate)
 	loop = 0
 	
 	pose = PoseWithCovarianceStamped()
@@ -31,7 +34,7 @@ def publish():
 	pose.pose.pose.position.y = 0.0
         
 	while not rospy.is_shutdown():
-		if loop >= 20:
+		if loop >= updateRate:
 			rr = sensor.read_holding_registers(address=8, count=2, unit=1)
 			temp.temperature = struct.unpack('>f',struct.pack('>HH', *rr.registers))[0]
 			tempPub.publish(temp)
