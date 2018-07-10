@@ -77,7 +77,7 @@ class ActiveStabilizer():
 	def depthModeCallback(self, msg):
 		self.curDepthMode = msg.mode
 
-		if math.isfinite(msg.target.z):
+		if np.isfinite(msg.target.z):
 			self.saveDepth = False
 			self.targetDepth = msg.target.z
 		elif self.curDepthMode != StabilityMode.position:
@@ -87,7 +87,7 @@ class ActiveStabilizer():
 		self.yawEnabled = msg.yawEnabled
 		self.curAngleMode = msg.mode
 
-		if math.isfinite(msg.target.w):
+		if np.isfinite(msg.target.w):
 			self.saveOrientation = False
 			self.targetOrientation = rosToArray(msg.target)
 		if self.curAngleMode != StabilityMode.position:
