@@ -41,13 +41,13 @@ class ActiveStabilizer():
 		self.depthPosGain = [1, 0, 1]
 		self.depthLastPos = None
 		self.depthIntegratedError = 0
-		self.depthMaxForce = None
+		self.depthMaxForce = 5
 
 		self.orientVelGain = 1
 		self.orientPosGain = [1, 0, 1]
-		self.orientLastPos = None
-		self.orientIntegratedError = [0,0,0]
-		self.orientMaxForce = None
+		self.orientLastError = None
+		self.orientIntegratedError = np.array([0,0,0])
+		self.orientMaxForce = 2
 
 		self.reconfigureServer = Server(StabilityConfig, self.reconfigureCallback)
 
@@ -100,8 +100,9 @@ class ActiveStabilizer():
 		if self.depthLastPos is None or self.curDepthMode is not StabilityMode.position:
 			self.depthLastPos = msg.pose.pose.position.z
 		
-		if self.orientLastPos is None or self.curAngleMode is not StabilityMode.position:
-			self.orientLastPos = np.array([0,0,0])
+		if self.orientLastError is None or self.curAngleMode is not StabilityMode.position:
+			self.orientLastError = np.array([0,0,0])
+			self.orientIntegratedError = np.array([0,0,0])
 
 		if self.curDepthMode == StabilityMode.off:
 			self.stabilityWrench.force.x = 0
@@ -189,8 +190,8 @@ class ActiveStabilizer():
 			#TODO: Should we actually use the update time for this stuff?
 			if self.lastUpdateTime is not None:
 				#Depth derivative computation
-				derivativeCorrection = -self.orientPosGain[2] * (rpyError - self.orientLastPos) / (timeNow - self.lastUpdateTime)
-				self.orientLastPos = rpyError
+				derivativeCorrection = -self.orientPosGain[2] * (rpyError - self.orientLastError) / (timeNow - self.lastUpdateTime)
+				self.orientLastError = rpyError
 
 				self.orientIntegratedError += rpyError * (timeNow - self.lastUpdateTime)
 				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
