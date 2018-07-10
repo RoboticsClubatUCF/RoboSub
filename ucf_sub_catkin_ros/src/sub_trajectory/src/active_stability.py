@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 from enum import Enum
 import math, time
 
 from nav_msgs.msg import Odometry
 from sub_trajectory.msg import StabilityMode
 from geometry_msgs.msg import Wrench
+
 from dynamic_reconfigure.server import Server
 from sub_trajectory.cfg import StabilityConfig
 
@@ -136,14 +137,14 @@ class ActiveStabilizer():
 				integralCorrection = -self.depthPosGain[1] * self.depthIntegratedError
 				#Back-calculation integrator windup prevention
 				if abs(proportionalCorrection + derivativeCorrection + integralCorrection) > self.depthMaxForce:
-					self.depthIntegratedError = ((np.sign(error)*self.depthMaxForce) - derivativeCorrection - proportionalCorrection)/self.depthPosGain[1]
+					self.depthIntegratedError = ((-np.sign(error)*self.depthMaxForce) - derivativeCorrection - proportionalCorrection)/-self.depthPosGain[1]
 				integralCorrection = -self.depthPosGain[1] * self.depthIntegratedError
-				rospy.logwarn(integralCorrection)	
+
+			#print([ proportionalCorrection, derivativeCorrection, integralCorrection])	
 
 			quat = rosToArray(msg.pose.pose.orientation)
 			quat = tf.transformations.quaternion_conjugate(quat)
 			counterVec = rotateVector(quat, [0,0,proportionalCorrection + derivativeCorrection + integralCorrection])
-			print(counterVec)
 			self.stabilityWrench.force.x = counterVec[0]
 			self.stabilityWrench.force.y = counterVec[1]
 			self.stabilityWrench.force.z = counterVec[2]
@@ -199,7 +200,7 @@ class ActiveStabilizer():
 				#Back-calculation integrator windup prevention
 				for i in range(3):
 					if abs(proportionalCorrection[i] + derivativeCorrection[i] + integralCorrection[i]) > self.orientMaxForce:
-						self.orientIntegratedError[i] = ((np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/self.orientPosGain[1]
+						self.orientIntegratedError[i] = ((-np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/-self.orientPosGain[1]
 				
 				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
 
