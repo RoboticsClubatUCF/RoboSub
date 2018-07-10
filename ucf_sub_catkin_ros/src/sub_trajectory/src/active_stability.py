@@ -137,7 +137,8 @@ class ActiveStabilizer():
 				#Back-calculation integrator windup prevention
 				if abs(proportionalCorrection + derivativeCorrection + integralCorrection) > self.depthMaxForce:
 					self.depthIntegratedError = ((np.sign(error)*self.depthMaxForce) - derivativeCorrection - proportionalCorrection)/self.depthPosGain[1]
-					
+				integralCorrection = -self.depthPosGain[1] * self.depthIntegratedError
+				rospy.logwarn(integralCorrection)	
 
 			quat = rosToArray(msg.pose.pose.orientation)
 			quat = tf.transformations.quaternion_conjugate(quat)
@@ -199,6 +200,8 @@ class ActiveStabilizer():
 				for i in range(3):
 					if abs(proportionalCorrection[i] + derivativeCorrection[i] + integralCorrection[i]) > self.orientMaxForce:
 						self.orientIntegratedError[i] = ((np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/self.orientPosGain[1]
+				
+				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
 
 			self.stabilityWrench.torque.x = proportionalCorrection[0] + derivativeCorrection[0] + integralCorrection[0]
 			self.stabilityWrench.torque.y = proportionalCorrection[1] + derivativeCorrection[1] + integralCorrection[1]
