@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import smbus, os, struct, time
-from datetime import datetime
 
 class FuelGauge:
     def __init__(self, address=0x64, bus=None, shunt=0.002):
@@ -139,7 +138,7 @@ class FuelGauge:
             self.temperature = 510 * float(struct.unpack('>H', temperatureBuf)[0])/0xFFFF
             self.temperature = self.temperature - 273.15
             
-            self.timestamp = datetime.now()
+            self.timestamp = time.time()
             
         except:
 	        raise IOError("Could not read data from device at %s" % self.address)
@@ -163,7 +162,7 @@ def populateBatteryMessage(msg, fg):
         
     msg.percentage = 1+(msg.charge/msg.design_capacity)
     
-    msg.header.stamp = rospy.Time.from_sec(fg.timestamp.timestamp())
+    msg.header.stamp = rospy.Time.from_sec(fg.timestamp)
 
     msg.present = True
 
