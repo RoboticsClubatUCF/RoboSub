@@ -103,10 +103,22 @@ class FuelGauge:
     def resetCharge(self):
         data = [0x7F, 0xFF]
         try:
-            self.i2c.write_block_data(self.address, self.registerLookup["chargeMSB"], data)
+            self.i2c.write_i2c_block_data(self.address, self.registerLookup["chargeMSB"], data)
         except:
             raise IOError("Could not write charge data to device at %s" % self.address)
-	    
+
+    def resetAlarms(self):
+        try:
+            self.i2c.write_byte_data(self.address, self.registerLookup["status"], 0x00)
+        except:
+            raise IOError("Could not write status data to device at %s" % self.address)
+	
+    def checkAlarms(self):
+        if self.i2c.read_byte_data(self.address, self.registerLookup["status"]) != 0x00:
+            return True
+        else:
+            return False
+            
     def read(self):
         try:
             chargeBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["charge"], 2))
@@ -154,10 +166,16 @@ if __name__ == "__main__":
     
     rospy.init_node('BatteryMonitor')
     fg1 = FuelGauge(address=0x64, bus=1)
-    fg1.initSensor(256)
+    fg1.initSensor(256, "Alarm")
+    fg1.setLimit("current", 25, -12)
+    fg1.setLimit("voltage", 17, 12)
+    fg1.setLimit("temperature", 50, 0)
     
     fg2 = FuelGauge(address=0x65, bus=1)
-    fg2.initSensor(256)
+    fg2.initSensor(256, "Alarm")
+    fg2.setLimit("current", 25, -12)
+    fg2.setLimit("voltage", 17, 12)
+    fg2.setLimit("temperature", 50, 0)
 
     r = rospy.Rate(4)
     
