@@ -73,7 +73,6 @@ class FuelGauge:
         try:
             self.i2c.write_byte_data(self.address, self.registerLookup["control"], controlByte)
         except:
-            raise
             raise IOError("Could not write control data to device at %s" % self.address)
 
     def setLimit(self, limitName, upperLimit, lowerLimit):
@@ -82,7 +81,7 @@ class FuelGauge:
         
         upperData = None
         lowerData = None
-        
+
         if limitName == "charge":
             upperData = struct.pack('>H', int(upperLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
             lowerData = struct.pack('>H', int(lowerLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
@@ -99,10 +98,9 @@ class FuelGauge:
             return
 
         try:
-            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 2, bytes(upperData))
-            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 4, bytes(lowerData))
+            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 2, list(bytearray(upperData)))
+            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 4, list(bytearray(lowerData)))
         except:
-            raise
             raise IOError("Could not write limit data to device at %s" % self.address)
 
     def resetCharge(self):
@@ -189,7 +187,6 @@ if __name__ == "__main__":
     except:
         runFG1 = False
         rospy.logerr("Fuel Gauge 1 missing")
-        raise
     
     try:
         fg2 = FuelGauge(address=0x65, bus=1)
@@ -201,7 +198,6 @@ if __name__ == "__main__":
     except:
         runFG2 = False
         rospy.logerr("Fuel Gauge 2 missing")
-        raise
 
     r = rospy.Rate(4)
     
