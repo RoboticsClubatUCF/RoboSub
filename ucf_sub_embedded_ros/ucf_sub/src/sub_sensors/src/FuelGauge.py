@@ -80,24 +80,27 @@ class FuelGauge:
         if limitName not in self.registerLookup:
             raise ValueError("Limit name not valid")
         
+        upperData = None
+        lowerData = None
+        
         if limitName == "charge":
-            upperLimit = struct.pack('>H', int(upperLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
-            lowerLimit = struct.pack('>H', int(lowerLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
+            upperData = struct.pack('>H', int(upperLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
+            lowerData = struct.pack('>H', int(lowerLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
         elif limitName == "voltage":
-            upperLimit = struct.pack('>H', int(upperLimit/23.6 * 65535))
-            lowerLimit = struct.pack('>H', int(lowerLimit/23.6 * 65535))
+            upperData = struct.pack('>H', int(upperLimit/23.6 * 65535))
+            lowerData = struct.pack('>H', int(lowerLimit/23.6 * 65535))
         elif limitName == "current":
-            upperLimit = struct.pack('>H', int(self.shunt/0.06 * 32767 * upperLimit)+0x7FFF)
-            lowerLimit = struct.pack('>H', int(self.shunt/0.06 * 32767 * lowerLimit)+0x7FFF)
+            upperData = struct.pack('>H', int(self.shunt/0.06 * 32767 * upperLimit)+0x7FFF)
+            lowerData = struct.pack('>H', int(self.shunt/0.06 * 32767 * lowerLimit)+0x7FFF)
         elif limitName == "temperature":
-            upperLimit = struct.pack('>H', int((upperLimit+273.15)/510*0xFFFF))
-            lowerLimit = struct.pack('>H', int((lowerLimit+273.15)/510*0xFFFF))
+            upperData = struct.pack('>H', int((upperLimit+273.15)/510*0xFFFF))
+            lowerData = struct.pack('>H', int((lowerLimit+273.15)/510*0xFFFF))
         else:
             return
 
         try:
-            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 2, bytes(upperLimit))
-            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 4, bytes(lowerLimit))
+            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 2, bytes(upperData))
+            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 4, bytes(lowerData))
         except:
             raise
             raise IOError("Could not write limit data to device at %s" % self.address)
