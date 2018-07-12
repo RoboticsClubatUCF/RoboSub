@@ -111,9 +111,9 @@ class FuelGauge:
 
     def resetAlarms(self):
         try:
-            self.i2c.write_byte_data(self.address, self.registerLookup["status"], 0x00)
+            self.i2c.read_byte(0x0c)
         except:
-            raise IOError("Could not write status data to device at %s" % self.address)
+            pass
 	
     def checkAlarms(self):
         try:
@@ -159,6 +159,10 @@ def populateBatteryMessage(msg, fg):
         msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_COLD
     else:
         msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_GOOD
+
+    if fg.checkAlarms():
+        fg.resetAlarms()
+        msg.power_supply_health = msg.POWER_SUPPLY_HEALTH_UNSPEC_FAILURE
         
     msg.percentage = 1+(msg.charge/msg.design_capacity)
     
