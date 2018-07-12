@@ -176,8 +176,10 @@ if __name__ == "__main__":
         fg1.setLimit("current", 25, -12)
         fg1.setLimit("voltage", 17, 12)
         fg1.setLimit("temperature", 50, 0)
+        rospy.loginfo("Fuel Gauge 1 initialized")
     except:
         runFG1 = False
+        rospy.logerr("Fuel Gauge 1 missing")
     
     try:
         fg2 = FuelGauge(address=0x65, bus=1)
@@ -185,8 +187,10 @@ if __name__ == "__main__":
         fg2.setLimit("current", 25, -12)
         fg2.setLimit("voltage", 17, 12)
         fg2.setLimit("temperature", 50, 0)
+        rospy.loginfo("Fuel Gauge 2 initialized")
     except:
         runFG2 = False
+        rospy.loginfo("Fuel Gauge 2 missing")
 
     r = rospy.Rate(4)
     
