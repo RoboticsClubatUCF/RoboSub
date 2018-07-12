@@ -73,6 +73,7 @@ class FuelGauge:
         try:
             self.i2c.write_byte_data(self.address, self.registerLookup["control"], controlByte)
         except:
+            raise
             raise IOError("Could not write control data to device at %s" % self.address)
 
     def setLimit(self, limitName, upperLimit, lowerLimit):
@@ -98,6 +99,7 @@ class FuelGauge:
             self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 2, bytes(upperLimit))
             self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 4, bytes(lowerLimit))
         except:
+            raise
             raise IOError("Could not write limit data to device at %s" % self.address)
 
     def resetCharge(self):
@@ -114,10 +116,14 @@ class FuelGauge:
             raise IOError("Could not write status data to device at %s" % self.address)
 	
     def checkAlarms(self):
-        if self.i2c.read_byte_data(self.address, self.registerLookup["status"]) != 0x00:
-            return True
-        else:
-            return False
+        try:
+            if self.i2c.read_byte_data(self.address, self.registerLookup["status"]) != 0x00:
+                return True
+            else:
+                return False
+        except:
+            raise IOError("Could not read alarm data from device at %s" % self.address)
+       
 
     def read(self):
         try:
@@ -180,6 +186,7 @@ if __name__ == "__main__":
     except:
         runFG1 = False
         rospy.logerr("Fuel Gauge 1 missing")
+        raise
     
     try:
         fg2 = FuelGauge(address=0x65, bus=1)
@@ -190,7 +197,8 @@ if __name__ == "__main__":
         rospy.loginfo("Fuel Gauge 2 initialized")
     except:
         runFG2 = False
-        rospy.loginfo("Fuel Gauge 2 missing")
+        rospy.logerr("Fuel Gauge 2 missing")
+        raise
 
     r = rospy.Rate(4)
     
