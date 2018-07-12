@@ -118,7 +118,7 @@ class FuelGauge:
             return True
         else:
             return False
-            
+
     def read(self):
         try:
             chargeBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["charge"], 2))
@@ -158,24 +158,35 @@ def populateBatteryMessage(msg, fg):
     
     msg.header.stamp = rospy.Time.from_sec(fg.timestamp.timestamp())
 
+    msg.present = True
+
     return msg
 
 if __name__ == "__main__":
     import rospy
     from sensor_msgs.msg import BatteryState
     
+    runFG1 = True
+    runFG2 = True
+
     rospy.init_node('BatteryMonitor')
-    fg1 = FuelGauge(address=0x64, bus=1)
-    fg1.initSensor(256, "Alarm")
-    fg1.setLimit("current", 25, -12)
-    fg1.setLimit("voltage", 17, 12)
-    fg1.setLimit("temperature", 50, 0)
+    try:
+        fg1 = FuelGauge(address=0x64, bus=1)
+        fg1.initSensor(256, "Alarm")
+        fg1.setLimit("current", 25, -12)
+        fg1.setLimit("voltage", 17, 12)
+        fg1.setLimit("temperature", 50, 0)
+    except:
+        runFG1 = False
     
-    fg2 = FuelGauge(address=0x65, bus=1)
-    fg2.initSensor(256, "Alarm")
-    fg2.setLimit("current", 25, -12)
-    fg2.setLimit("voltage", 17, 12)
-    fg2.setLimit("temperature", 50, 0)
+    try:
+        fg2 = FuelGauge(address=0x65, bus=1)
+        fg2.initSensor(256, "Alarm")
+        fg2.setLimit("current", 25, -12)
+        fg2.setLimit("voltage", 17, 12)
+        fg2.setLimit("temperature", 50, 0)
+    except:
+        runFG2 = False
 
     r = rospy.Rate(4)
     
@@ -187,14 +198,32 @@ if __name__ == "__main__":
     msg.power_supply_technology = msg.POWER_SUPPLY_TECHNOLOGY_LIPO
     
     while not rospy.is_shutdown():
-        fg1.read()
+        if runFG1:
+            fg1.read()
+            msg = populateBatteryMessage(msg, fg1)
+        else:
+            msg.power_supply_status = msg.POWER_SUPPLY_STATUS_UNKNOWN
+            msg.current = 0.0
+            msg.voltage = 0.0
+            msg.present = False
+            msg.charge = 0.0
+            msg.capacity = 0.0
+
         msg.header.frame_id = "battery1"
-        msg = populateBatteryMessage(msg, fg1)
         bat1Pub.publish(msg)
 
-        fg2.read()
+        if runFG2:
+            fg2.read()
+            msg = populateBatteryMessage(msg, fg2)
+        else:
+            msg.power_supply_status = msg.POWER_SUPPLY_STATUS_UNKNOWN
+            msg.current = 0.0
+            msg.voltage = 0.0
+            msg.present = False
+            msg.charge = 0.0
+            msg.capacity = 0.0
+
         msg.header.frame_id = "battery2"
-        msg = populateBatteryMessage(msg, fg2)
         bat2Pub.publish(msg)
 
         r.sleep()
