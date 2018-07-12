@@ -26,10 +26,14 @@ class FuelGauge:
         
         self.registerLookup = {"status" : 0x00,
                                "control" : 0x01,
-                               "chargeMSB": 0x02,
-                               "voltageMSB": 0x08,
-                               "currentMSB": 0x0E,
-                               "temperatureMSB": 0x14}
+                               "charge": 0x02,
+                               "voltage": 0x08,
+                               "current": 0x0E,
+                               "temperature": 0x14}
+
+        self.alccModes = {"None": 0b00000000,
+                          "Alarm": 0b00000100,
+                          "Reset": 0b00000010}
         
         if bus is None:
             for b in range(0,3):
@@ -52,20 +56,50 @@ class FuelGauge:
 
         return
 	
-    def initSensor(self, prescalar):
+    def initSensor(self, prescalar, alccMode="None"):
         if prescalar not in self.prescalarLookup:
             raise ValueError("Prescalar value not valid")
+        if alccMode not in self.alccModes:
+            raise ValueError("ALCC Mode not valid")
+
+        
 	    
         self.prescalar = prescalar
 	    
         controlByte = 0b11000000
         controlByte |= self.prescalarLookup[self.prescalar]
-	    
+        controlByte |= self.alccModes[alccMode]
+
         try:
             self.i2c.write_byte_data(self.address, self.registerLookup["control"], controlByte)
         except:
             raise IOError("Could not write control data to device at %s" % self.address)
-	    
+
+    def setLimit(self, limitName, upperLimit, lowerLimit):
+        if limitName not in self.registerLookup:
+            raise ValueError("Limit name not valid")
+        
+        if limitName == "charge":
+            upperLimit = struct.pack('>H', int(upperLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
+            lowerLimit = struct.pack('>H', int(lowerLimit * 4096/self.prescalar * self.shunt/0.05 / 0.34) + 0x7FFF)
+        elif limitName == "voltage":
+            upperLimit = struct.pack('>H', int(upperLimit/23.6 * 65535))
+            lowerLimit = struct.pack('>H', int(lowerLimit/23.6 * 65535))
+        elif limitName == "current":
+            upperLimit = struct.pack('>H', int(self.shunt/0.06 * 32767 * upperLimit)+0x7FFF)
+            lowerLimit = struct.pack('>H', int(self.shunt/0.06 * 32767 * lowerLimit)+0x7FFF)
+        elif limitName == "temperature":
+            upperLimit = struct.pack('>H', int((upperLimit+273.15)/510*0xFFFF))
+            lowerLimit = struct.pack('>H', int((lowerLimit+273.15)/510*0xFFFF))
+        else:
+            return
+
+        try:
+            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 2, bytes(upperLimit))
+            self.i2c.write_i2c_block_data(self.address, self.registerLookup[limitName] + 4, bytes(lowerLimit))
+        except:
+            raise IOError("Could not write limit data to device at %s" % self.address)
+
     def resetCharge(self):
         data = [0x7F, 0xFF]
         try:
@@ -75,10 +109,10 @@ class FuelGauge:
 	    
     def read(self):
         try:
-            chargeBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["chargeMSB"], 2))
-            voltageBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["voltageMSB"], 2))
-            currentBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["currentMSB"], 2))
-            temperatureBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["temperatureMSB"], 2))
+            chargeBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["charge"], 2))
+            voltageBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["voltage"], 2))
+            currentBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["current"], 2))
+            temperatureBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["temperature"], 2))
 
             self.charge = float(struct.unpack('>H', chargeBuf)[0]-0x7FFF) * 0.34 * 0.05/self.shunt * self.prescalar / 4096
             self.voltage = 23.6 * float(struct.unpack('>H', voltageBuf)[0])/65535.0
