@@ -128,10 +128,10 @@ class FuelGauge:
 
     def read(self):
         try:
-            chargeBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["charge"], 2))
-            voltageBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["voltage"], 2))
-            currentBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["current"], 2))
-            temperatureBuf = bytes(self.i2c.read_i2c_block_data(self.address, self.registerLookup["temperature"], 2))
+            chargeBuf = bytearray(self.i2c.read_i2c_block_data(self.address, self.registerLookup["charge"], 2))
+            voltageBuf = bytearray(self.i2c.read_i2c_block_data(self.address, self.registerLookup["voltage"], 2))
+            currentBuf = bytearray(self.i2c.read_i2c_block_data(self.address, self.registerLookup["current"], 2))
+            temperatureBuf = bytearray(self.i2c.read_i2c_block_data(self.address, self.registerLookup["temperature"], 2))
 
             self.charge = float(struct.unpack('>H', chargeBuf)[0]-0x7FFF) * 0.34 * 0.05/self.shunt * self.prescalar / 4096
             self.voltage = 23.6 * float(struct.unpack('>H', voltageBuf)[0])/65535.0
