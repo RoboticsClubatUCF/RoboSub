@@ -4,21 +4,30 @@ import smach
 import actionlib
 import actionlib_msgs.msg
 from sub_vision.msg import TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult, VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult
+from geometry_msgs.msg import Wrench
+from sensor_msgs.msg import Imu
 
 class locate(smach.State):
 	def __init__(self):
         	smach.State.__init__(self, outcomes=['preempted','success', 'failure'])
         	self.client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
         	self.client.wait_for_server()
+            self.firstIMUCall = True
+            self.imuSubscriber = rospy.Subscriber("/imu/data", Imu, self.initIMU)
+            self.thresh = quaternion_from_euler(0,0,15)
+            self.orientationX = None
+            self.orientationY = None
+            self.orientationZ = None
+            self.com = Wrench()
 
 	def execute(self, userdate):
-        	rospy.loginfo("Locating the pole.")
-        	start = rospy.Time(0)
+        rospy.loginfo("Locating the pole.")
+        start = rospy.Time(0)
 
-        	goal = TrackObjectGoal()
-        	goal.objectType = goal.pole
+        goal = TrackObjectGoal()
+        goal.objectType = goal.pole
 		goal.servoing = False
-        	self.client.send_goal(goal)
+        self.client.send_goal(goal)
 
 		self.client.wait_for_result()
 		result = self.client.get_result()
@@ -27,7 +36,32 @@ class locate(smach.State):
 			return 'success'
 
 		else:
-			return 'failure'
+            if (self.orientationZ < self.thresh and self.orientationZ > self.startZ) or self.orientationZ == None:
+                self.com.force.x = 0
+                self.com.force.y = 0
+                self.com.force.z = 0
+                self.com.torque.x = 0
+                self.com.torque.y = 0
+                self.com.torque.z = 1
+
+            else:
+
+                return 'failure'
+
+	
+    def initIMU(self, msg):
+        if self.firstIMUCall:
+            self.startX = msg.orientation.x
+            self.startY = msg.orientation.y
+            self.startZ = msg.orientation.z
+            self.firstIMUCall = False
+            self.thresh = quaternion_multiply(self.startZ, self.thresh)
+            return 
+
+        self.orientationX = msg.orientation.x
+        self.orientationY = msg.orientation.y
+        self.orientationZ = msg.orientation.z
+
 
 
 class align(smach.State):
