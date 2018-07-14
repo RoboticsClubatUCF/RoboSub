@@ -32,9 +32,10 @@ def resample_particles(curPart, desiredParticleSize):
 	return newParticles
 
 def euclidean_distance(curPosit, virtualPosit):
-	return math.sqrt(math.square(virtualPosit[0]-curPosit[0])+math.square(virtualPosit[1]-curPosit[1]))
+	return math.sqrt((virtualPosit[0]-curPosit[0])**2+(virtualPosit[1]-curPosit[1])**2)
 
 def update(curPart, curPosit):
+	total = 0
 	for i in range(len(curPart)):
 		curPart[i][2] = euclidean_distance(curPosit,curPart[i])
 		total = total + curPart[i][2]

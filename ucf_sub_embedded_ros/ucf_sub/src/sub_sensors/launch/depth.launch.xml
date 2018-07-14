@@ -4,7 +4,7 @@
     <arg name="port" default="/dev/ucfsub/depth" />
     <arg name="baud" default="115200" />
 
-    <!-- Launch an AHRS-8 node. -->
+    <!-- Launch a modbus depth sensor node. -->
     <node name="depthsense_driver" pkg="sub_sensors" type="MODBUSDepth.py">
         <param name="port" value="$(arg port)" />
         <param name="baud" value="$(arg baud)" />

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(sub_vision)
 
 find_package(catkin REQUIRED COMPONENTS message_generation rospy)
-find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
+find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs dynamic_reconfigure)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -31,6 +31,10 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs)
    TrackObject.action
    VisualServo.action
  )
+
+generate_dynamic_reconfigure_options(
+  cfg/visual_servo.cfg
+)
 
 ## Generate added messages and services with any dependencies listed here
  generate_messages(

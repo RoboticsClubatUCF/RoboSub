@@ -12,7 +12,7 @@ gpio.setup(CHANNEL2, gpio.OUT)
 FIRETIME = 0.04
 
 t1Last = False
-t2last = False
+t2Last = False
 
 def fireTorp1(data):
 	global t1Last

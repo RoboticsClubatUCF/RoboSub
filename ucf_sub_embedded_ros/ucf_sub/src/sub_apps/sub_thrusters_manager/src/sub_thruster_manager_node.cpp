@@ -14,9 +14,6 @@
 #include <fstream>
 #include <memory>
 
-//TODO: Determine module name at runtime (needs some capemgr fuckery)
-#define SUB_SECTION_NAME "COMPUTE"
-
 inline const std::string BoolToString(const bool b); //http://stackoverflow.com/a/29798
 
 class ThrusterManager {
@@ -27,14 +24,10 @@ class ThrusterManager {
 
     sub_trajectory::ThrusterCmd savedMsg;
 
-//    std::map<int, GenericThruster> thrusterMap;
-
     std::map<int, std::unique_ptr<GenericThruster>> thrusterMap;
 
-
-
-//std::map<int, std::unique_ptr<element>> elementMap;
-//elementMap[17] = std::unique_ptr<element>(new elasticFrame3D(3.14, 2.71));
+    int updateRate;
+    int expectedThrusters;
 
     ros::ServiceServer initServer;
 
@@ -47,30 +40,29 @@ public:
 
         command_subscriber = nh_.subscribe("/thrusters/cmd_vel", 1000, &ThrusterManager::thrusterCb, this);
 
-        diagnostics_output = nh_.advertise<diagnostic_msgs::DiagnosticStatus>("/diagnostics", 1000);
+        diagnostics_output = nh_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1000);
 
         self_test_.add("Test connections", this, &ThrusterManager::testThrusterConnections);
 
         initServer = nh_.advertiseService("initThrusters", &ThrusterManager::initService, this);
 
-    	//thrusterMap[0] = T200Thruster(1, 0x2D);
-    	//thrusterMap[1] = T200Thruster(1, 0x2E); //This should keep a reference? The copy disabling thing should keep us safe
+    	nh_.param("/updateRate", updateRate, 30);
     }
 
     Json::Value loadConfig(std::string filename)
     {
         ifstream configFile(filename);
         if(!configFile.is_open()){
-            ROS_ERROR("%s thruster controller couldn't open config file", SUB_SECTION_NAME);
+            ROS_ERROR("Thruster controller couldn't open config file");
             //status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Config file didn't load");
             Json::Value obj;
             return obj;
         }
 
-        ROS_INFO("%s thruster controller config loading", SUB_SECTION_NAME);
+        ROS_INFO("Thruster controller config loading");
         Json::Value obj;
         configFile >> obj;
-        ROS_INFO("%s thruster controller config loaded", SUB_SECTION_NAME);
+        ROS_INFO("Thruster controller config loaded");
         return obj;
     }
     bool initService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp)
@@ -82,9 +74,14 @@ public:
     void init()
     {
         thrusterMap.clear();
-        Json::Value thrustersJson = loadConfig("config.json")[SUB_SECTION_NAME];
+        Json::Value thrustersJson = loadConfig("config.json")["COMPUTE"];
+
         savedMsg = sub_trajectory::ThrusterCmd();
         savedMsg.cmd.resize(thrustersJson.size(), 0.0);
+        expectedThrusters = thrustersJson.size();
+
+        diagnostic_msgs::DiagnosticArray diag;
+
         for(int i = 0; i < thrustersJson.size(); i++) {
             int thrusterID = thrustersJson[i]["ID"].asInt();
             int thrusterType = thrustersJson[i]["Type"].asInt(); //TODO: support for multiple thruster types
@@ -99,44 +96,68 @@ public:
                 thrusterMap.erase(i);
                 //Publish an error message for the diagnostic system to do something about
                 diagnostic_msgs::DiagnosticStatus status;
-                status.name = "Thrusters";
-                status.hardware_id = "Thrusters";
+                status.name = "Thruster_"+thrustersJson[i]["Address"].asString();
+                status.hardware_id = "Thruster_"+thrustersJson[i]["Address"].asString();
                 status.level = status.ERROR;
-                diagnostics_output.publish(status);
-                ros::spinOnce();
+                diag.status.push_back(status);
             }
         }
+        diagnostics_output.publish(diag);
+        ros::spinOnce();
         ROS_INFO("Done initializing thrusters");
     }
 
     void spin()
     {
-        ros::Rate rate(10);
+        ros::Rate rate(updateRate);
+        int loopCount;
         while(ros::ok()) {
-            //Publish diagnostic data here
-            diagnostic_msgs::DiagnosticStatus status;
-            status.name = "Thrusters";
-            status.hardware_id = "Thrusters"; //TODO: Different hardware ID/section based on sub section name?
+            diagnostic_msgs::DiagnosticArray diag;
             ROS_DEBUG("Updating thrusters");
-            for(auto& iter:thrusterMap)
+            if(loopCount++ > updateRate*2 && thrusterMap.size() < expectedThrusters)
             {
-                try {
-                    iter.second->updateStatus();
-                    iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
-                } catch(I2CException e) {
-                    //Publish an error message for the diagnostic system to do something about
-                    status.level = status.ERROR;
-                }
-
-                if (thrusterOk(iter.second) && status.level != status.ERROR)
-                    status.level = status.OK;
-                else
-                    status.level = status.ERROR;
-
-                PushDiagData(status, iter.second, std::to_string(iter.first));
+                init();
+                loopCount = 0;
             }
 
-            diagnostics_output.publish(status);
+            if(thrusterMap.size() != savedMsg.cmd.size())
+            {
+                diagnostic_msgs::DiagnosticStatus status;
+                status.name = "Thrusters";
+                status.hardware_id = "Thrusters";
+                status.level = status.ERROR;
+                diag.status.push_back(status);
+                ROS_ERROR("Thrusters command has wrong number of values");
+            }
+            else
+            {
+                for(auto& iter:thrusterMap)
+                {
+                    diagnostic_msgs::DiagnosticStatus status;
+                    status.name = "Thruster_"+std::to_string(iter.first);
+                    status.hardware_id = "Thruster_"+std::to_string(iter.first);
+                    
+                    try {
+                        iter.second->updateStatus();
+                        iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
+                    } catch(I2CException e) {
+                        //Publish an error message for the diagnostic system to do something about
+                        status.level = status.ERROR;
+                    } catch (std::out_of_range e) {
+                        ROS_ERROR("Thrusters command has not enough values");
+                    }
+
+                    if (thrusterOk(iter.second) && status.level != status.ERROR)
+                        status.level = status.OK;
+                    else
+                        status.level = status.ERROR;
+
+                    PushDiagData(status, iter.second, std::to_string(iter.first));
+                    diag.status.push_back(status);
+                }
+            }
+
+            diagnostics_output.publish(diag);
             ros::spinOnce();
             self_test_.checkTest();
             rate.sleep();
@@ -183,7 +204,7 @@ public:
     {
         self_test_.setID("thrusterController");
         std::stringstream failedThrusters;
-        Json::Value& thrustersJson = loadConfig("config.json")[SUB_SECTION_NAME];
+        Json::Value& thrustersJson = loadConfig("config.json")["COMPUTE"];
         for(int i = 0; i < thrustersJson.size(); i++)
 		{
             int thrusterID = thrustersJson[i]["ID"].asInt();
