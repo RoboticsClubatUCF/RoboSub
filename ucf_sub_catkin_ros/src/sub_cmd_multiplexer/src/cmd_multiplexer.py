@@ -47,12 +47,12 @@ class ThrusterControl:
 			return
 
 		self.twistMsg.force.x = msg.axes[1] * 7
-		self.twistMsg.force.y = msg.axes[0] * 7
-		self.twistMsg.force.z = msg.axes[2] * 7
-		
+		self.twistMsg.force.y = msg.axes[0] * -7
+		self.twistMsg.force.z = msg.axes[2] * -7
+
 		thruster_limit = (msg.axes[3]+1)/4
 		self.limit_pub.publish(thruster_limit)
-
+		self.stabilityMode.target.z = float("NaN")
 		if msg.axes[4] > 0.5 and abs(msg.axes[5]) < 0.5:
 			self.stabilityMode.mode = self.stabilityMode.velocity
 			self.depth_mode_pub.publish(self.stabilityMode)
@@ -73,11 +73,11 @@ class ThrusterControl:
 		if(len(msg.axes) < 5):
 			rospy.logerror("JOYSTICK ERROR: Not enough axes")
 			return
-		self.twistMsg.torque.x = msg.axes[0] * -7
-		self.twistMsg.torque.y = msg.axes[1] * -7
-		self.twistMsg.torque.z = msg.axes[2] * -7
+		self.twistMsg.torque.x = msg.axes[0] * -0.7
+		self.twistMsg.torque.y = msg.axes[1] * -1
+		self.twistMsg.torque.z = msg.axes[2] * -1
 		self.autonomyEnabled = msg.axes[3]
-
+		self.stabilityMode.target.w = float("NaN")
 		if msg.axes[4] > 0.5 and abs(msg.axes[5]) < 0.5:
 			self.stabilityMode.mode = self.stabilityMode.velocity
 			self.stabilityMode.yawEnabled = self.yawEnabled
