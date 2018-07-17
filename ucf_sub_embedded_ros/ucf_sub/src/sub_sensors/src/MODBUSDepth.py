@@ -42,12 +42,12 @@ def publish():
 		loop += 1
 			
 		rr = sensor.read_holding_registers(address=2, count=2, unit=1)
-		depth.data = struct.unpack('>f',struct.pack('>HH', *rr.registers))[0]
-		depthPub.publish(depth)
+		depth.data = 10.2*struct.unpack('>f',struct.pack('>HH', *rr.registers))[0]
 
-		pose.pose.pose.position.z = depth.data * 10.2
+		pose.pose.pose.position.z = depth.data
 		pose.header.stamp = rospy.Time.now()
 		posePub.publish(pose)
+		depthPub.publish(depth)
 		freq.sleep()
 
 if __name__ == '__main__':
