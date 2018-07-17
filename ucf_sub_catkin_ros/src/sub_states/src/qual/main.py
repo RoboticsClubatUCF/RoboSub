@@ -23,58 +23,58 @@ class StartState(smach.State):
 
 		return 'GO'
 
-		
-class SubStates:
-	def __init__(self):
-		rospy.loginfo("State Machine has started.")
-
-		self.gate = smach.StateMachine(outcomes=['preempted', 'DONE', 'ABORT'])
-		self.pole = smach.StateMachine(outcomes=['preempted', 'DONE', 'ABORT'])
-		self.tasks = smach.StateMachine(outcomes=['preempted', 'DONE', 'ABORT'])
-
-		with self.tasks:
-
-			smach.StateMachine.add('Start', StartState(), transitions={'GO':'GATE'})
-
-			with self.gate:
-				smach.StateMachine.add('LOCATE', gate.locate(),
-						       transitions={'preempted':'preempted',
-								    'success': 'ALIGN',
-								    'failure': 'LOCATE'})
-
-				smach.StateMachine.add('ALIGN', gate.align(),
-						       transitions={'preempted':'preempted',
-								    'success': 'THROUGH',
-								    'failure': 'LOCATE'})
-
-				smach.StateMachine.add('THROUGH', gate.through(),
-						       transitions={'preempted':'preempted',
-								    'success': 'DONE',
-								    'failure':'LOCATE'})
-			with self.pole:
-				smach.StateMachine.add('LOCATE', pole.locate(),
-						       transitions={'preempted':'preempted',
-								    'success': 'ALIGN',
-								    'failure': 'LOCATE'})
-
-				smach.StateMachine.add('ALIGN', pole.align(),
-						       transitions={'preempted':'preempted',
-								     'success': 'DRIFT',
-								     'failure': 'LOCATE'})
-
-				smach.StateMachine.add('DRIFT', pole.drift(),
-						       transitions={'preempted':'preempted',
-								    'success': 'DONE',
-								    'failure': 'LOCATE'})
-
-			smach.StateMachine.add('GATE', self.gate, transitions={'preempted':'preempted','DONE':'POLE'})
-			smach.StateMachine.add('POLE', self.pole, transitions={'preempted':'preempted','DONE':'DONE'})
-
-if __name__ == '__main__':
+def main():
 	rospy.init_node('hippo_sm')
-	sm = SubStates()
-	sis = smach_ros.IntrospectionServer("sm_server", sm.tasks, "/MAIN")
+	rospy.loginfo("State Machine has started.")
+
+	mission_sm = smach.StateMachine(outcomes=['preempted', 'DONE', 'ABORT'])
+
+	with mission_sm:
+
+		smach.StateMachine.add('Start', StartState(), transitions={'GO':'GATE'})
+
+		task_gate = smach.StateMachine(outcomes=['preempted', 'DONE', 'ABORT'])
+		with task_gate:
+			smach.StateMachine.add('LOCATE', gate.locate(),
+							transitions={'preempted':'preempted',
+								'success': 'ALIGN',
+								'failure': 'LOCATE'})
+
+			smach.StateMachine.add('ALIGN', gate.align(),
+							transitions={'preempted':'preempted',
+								'success': 'THROUGH',
+								'failure': 'LOCATE'})
+
+			smach.StateMachine.add('THROUGH', gate.through(),
+							transitions={'preempted':'preempted',
+								'success': 'DONE',
+								'failure':'LOCATE'})
+		
+		task_pole = smach.StateMachine(outcomes=['preempted', 'DONE', 'ABORT'])
+		with task_pole:
+			smach.StateMachine.add('LOCATE', pole.locate(),
+							transitions={'preempted':'preempted',
+								'success': 'ALIGN',
+								'failure': 'LOCATE'})
+
+			smach.StateMachine.add('ALIGN', pole.align(),
+							transitions={'preempted':'preempted',
+									'success': 'DRIFT',
+									'failure': 'LOCATE'})
+
+			smach.StateMachine.add('DRIFT', pole.drift(),
+							transitions={'preempted':'preempted',
+								'success': 'DONE',
+								'failure': 'LOCATE'})
+
+		smach.StateMachine.add('GATE', task_gate, transitions={'preempted':'preempted','DONE':'POLE'})
+		smach.StateMachine.add('POLE', task_pole, transitions={'preempted':'preempted','DONE':'DONE'})
+
+	sis = smach_ros.IntrospectionServer("sm_server", mission_sm, "/MISSION")
 	sis.start()
-	outcome = sm.tasks.execute()
+	mission_sm.execute()
 	rospy.spin()
 	sis.stop()
+
+if __name__ == '__main__':
+	main()
