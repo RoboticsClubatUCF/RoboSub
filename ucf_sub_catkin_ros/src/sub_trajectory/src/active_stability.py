@@ -5,7 +5,7 @@ import math, time
 from nav_msgs.msg import Odometry
 from sub_trajectory.msg import StabilityMode
 from geometry_msgs.msg import Wrench
-
+from std_msgs.msg import Float64
 from dynamic_reconfigure.server import Server
 from sub_trajectory.cfg import StabilityConfig
 
@@ -47,7 +47,7 @@ class ActiveStabilizer():
 		self.orientVelGain = 1
 		self.orientPosGain = [1, 0, 1]
 		self.orientLastError = None
-		self.orientIntegratedError = np.array([0,0,0])
+		self.orientIntegratedError = np.array([0.0,0.0,0.0],dtype="float64")
 		self.orientMaxForce = 2
 
 		self.reconfigureServer = Server(StabilityConfig, self.reconfigureCallback)
@@ -59,6 +59,8 @@ class ActiveStabilizer():
 		self.stabilityPublisher = rospy.Publisher("/stabilityWrench", Wrench, queue_size=1)
 
 		self.stabilityWrench = Wrench()
+
+		self.setPointPub = rospy.Publisher("/setpoint", Float64, queue_size=10)
 
 	def reconfigureCallback(self, config, level):
 		self.depthVelGain = config["depth_vel_P"]
@@ -108,7 +110,7 @@ class ActiveStabilizer():
 		
 		if self.orientLastError is None or self.curAngleMode is not StabilityMode.position:
 			self.orientLastError = np.array([0,0,0])
-			self.orientIntegratedError = np.array([0,0,0])
+			self.orientIntegratedError = np.array([0.0,0.0,0.0],dtype="float64")
 
 		if self.curDepthMode == StabilityMode.off:
 			self.stabilityWrench.force.x = 0
@@ -126,6 +128,7 @@ class ActiveStabilizer():
 			if self.saveDepth:
 				self.targetDepth = msg.pose.pose.position.z
 				self.saveDepth = False
+			self.setPointPub.publish(Float64(self.targetDepth))
 			error = msg.pose.pose.position.z - self.targetDepth
 			
 			proportionalCorrection = -self.depthPosGain[0]*error
@@ -138,10 +141,11 @@ class ActiveStabilizer():
 				derivativeCorrection = -self.depthPosGain[2] * (msg.pose.pose.position.z - self.depthLastPos) / (timeNow - self.lastUpdateTime)
 				self.depthLastPos = msg.pose.pose.position.z
 
-				self.depthIntegratedError += error * (timeNow - self.lastUpdateTime)
+				if self.depthPosGain[1] > 0.0001:
+					self.depthIntegratedError += error * (timeNow - self.lastUpdateTime)
 				integralCorrection = -self.depthPosGain[1] * self.depthIntegratedError
 				#Back-calculation integrator windup prevention
-				if abs(proportionalCorrection + derivativeCorrection + integralCorrection) > self.depthMaxForce:
+				if abs(proportionalCorrection + derivativeCorrection + integralCorrection) > self.depthMaxForce and self.depthPosGain[1] > 0.0001:
 					self.depthIntegratedError = ((-np.sign(error)*self.depthMaxForce) - derivativeCorrection - proportionalCorrection)/-self.depthPosGain[1]
 				integralCorrection = -self.depthPosGain[1] * self.depthIntegratedError
 
@@ -188,7 +192,7 @@ class ActiveStabilizer():
 			#	error, rosToArray(msg.pose.orientation)
 			#) #Rotate rotation from current to target by rotation from world to sub
 
-			rpyError = tf.transformations.euler_from_quaternion(error)
+			rpyError = np.array(tf.transformations.euler_from_quaternion(error))
 
 			proportionalCorrection = -self.orientPosGain[0]*rpyError
 			integralCorrection = np.array([0,0,0])
@@ -199,13 +203,14 @@ class ActiveStabilizer():
 				#Depth derivative computation
 				derivativeCorrection = -self.orientPosGain[2] * (rpyError - self.orientLastError) / (timeNow - self.lastUpdateTime)
 				self.orientLastError = rpyError
-
-				self.orientIntegratedError += rpyError * (timeNow - self.lastUpdateTime)
+				if self.orientPosGain[1] > 0.0001:
+					self.orientIntegratedError += rpyError * (timeNow - self.lastUpdateTime)
 				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
 				#Back-calculation integrator windup prevention
-				for i in range(3):
-					if abs(proportionalCorrection[i] + derivativeCorrection[i] + integralCorrection[i]) > self.orientMaxForce:
-						self.orientIntegratedError[i] = ((-np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/-self.orientPosGain[1]
+				if self.orientPosGain[1] > 0.0001:
+					for i in range(3):
+						if abs(proportionalCorrection[i] + derivativeCorrection[i] + integralCorrection[i]) > self.orientMaxForce:
+							self.orientIntegratedError[i] = ((-np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/-self.orientPosGain[1]
 				
 				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
 
