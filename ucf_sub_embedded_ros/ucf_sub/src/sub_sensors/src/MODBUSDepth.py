@@ -12,7 +12,7 @@ def publish():
 
 	rospy.init_node('Depth')
 	tempPub = rospy.Publisher('ExternalTemperature', Temperature, queue_size=1)
-	depthPub = rospy.Publisher('depth', Float32, queue_size=1)
+	depthPub = rospy.Publisher('/depth', Float32, queue_size=1)
 	posePub = rospy.Publisher('/depth/pose', PoseWithCovarianceStamped, queue_size=1)
 	
 	temp = Temperature()

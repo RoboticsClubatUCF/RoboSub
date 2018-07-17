@@ -9,7 +9,7 @@ CHANNEL = 429 #should be 17
 
 def publish():
 	rospy.init_node('Leak')
-	leakPub = rospy.Publisher('Leak', Bool, queue_size=1)
+	leakPub = rospy.Publisher('/leak', Bool, queue_size=1)
 	diagPub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=1)
 	#GPIO.setmode(GPIO.BCM)
 	#GPIO.setup(CHANNEL, GPIO.IN)
