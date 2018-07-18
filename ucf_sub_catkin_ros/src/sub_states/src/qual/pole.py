@@ -2,7 +2,7 @@
 import rospy
 import smach
 import actionlib
-import actionlib_msgs.msg
+from actionlib_msgs.msg import GoalStatus
 from sub_vision.msg import TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult, VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Imu
@@ -10,7 +10,7 @@ import tf
 
 class locate(smach.State):
     def __init__(self):
-            smach.State.__init__(self, outcomes=['preempted','success', 'failure'])
+            smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
             self.client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
             self.client.wait_for_server()
             self.firstIMUCall = True
@@ -30,7 +30,12 @@ class locate(smach.State):
         goal.servoing = False
         self.client.send_goal(goal)
 
-        self.client.wait_for_result()
+        while self.client.get_state() in [GoalStatus.ACTIVE, GoalStatus.PENDING] and not self.preempt_requested():
+            time.sleep(0.1)
+
+        if self.preempt_requested():
+            return 'preempted'
+
         result = self.client.get_result()
         #rospy.loginfo(self.feedback.found)
         if result.found:
@@ -67,25 +72,29 @@ class locate(smach.State):
 
 class align(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted','success', 'failure'])
+        smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
         self.client = actionlib.SimpleActionClient('visual_servo', VisualServoAction)
         self.client.wait_for_server()
 
-	def execute(self, userdata):
-		rospy.loginfo("Aligning with the pole.")
-		start = rospy.Time(0)
+    def execute(self, userdata):
+        rospy.loginfo("Aligning with the pole.")
+        start = rospy.Time(0)
 
-		goal = VisualServoGoal()
-		goal.servotask = goal.align
-		self.client.send_goal(goal)
+        goal = VisualServoGoal()
+        goal.servotask = goal.align
+        self.client.send_goal(goal)
 
-		self.client.wait_for_result()
-		aligned = self.client.get_result()
+        while self.client.get_state() in [GoalStatus.ACTIVE, GoalStatus.PENDING] and not self.preempt_requested():
+            time.sleep(0.1)
 
-		if aligned.aligned:
-			return 'success'
-		else:
-			return 'failure'
+        if self.preempt_requested():
+            return 'preempted'
+        aligned = self.client.get_result()
+
+        if aligned.aligned:
+            return 'success'
+        else:
+            return 'failure'
 
 
 class drift(smach.State):
@@ -94,21 +103,44 @@ class drift(smach.State):
         self.client = actionlib.SimpleActionClient('visual_servo', VisualServoAction)
         self.client.wait_for_server()
 
-	def execute(self, userdata):
-		rospy.loginfo("Drifting")
-		start = rospy.Time(0)
+    def execute(self, userdata):
+        rospy.loginfo("Drifting")
+        start = rospy.Time(0)
 
-		goal = VisualServoGoal()
-		goal.servotask = goal.drift
-		self.client.send_goal(goal)
+        goal = VisualServoGoal()
+        goal.servotask = goal.drift
+        self.client.send_goal(goal)
 
-		self.client.wait_for_result()
-		drifted = self.client.get_result()
+        while self.client.get_state() in [GoalStatus.ACTIVE, GoalStatus.PENDING] and not self.preempt_requested():
+            time.sleep(0.1)
 
-		if drifted.aligned:
-			rospy.loginfo("Drifting complete!")
-			return 'sucess'
+        if self.preempt_requested():
+            return 'preempted'
 
-		else:
-			return 'failure'
+        drifted = self.client.get_result()
 
+        if drifted.aligned:
+            rospy.loginfo("Drifting complete!")
+            return 'sucess'
+
+        else:
+            return 'failure'
+
+def makeTask():
+    task = smach.StateMachine(outcomes=['DONE'])
+    with task:
+        smach.StateMachine.add('LOCATE', locate(),
+                        transitions={'preempted':'DONE',
+                            'success': 'ALIGN',
+                            'failure': 'LOCATE'})
+
+        smach.StateMachine.add('ALIGN', align(),
+                        transitions={'preempted':'DONE',
+                            'success': 'DRIFT',
+                            'failure': 'LOCATE'})
+
+        smach.StateMachine.add('DRIFT', drift(),
+                        transitions={'preempted':'DONE',
+                            'success': 'DONE',
+                            'failure': 'LOCATE'})
+    return task

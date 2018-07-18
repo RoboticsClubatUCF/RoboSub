@@ -1,8 +1,9 @@
 #!/user/bin/env python
 import smach
 import rospy
+import time
 import actionlib
-import actionlib_msgs.msg
+from actionlib_msgs.msg import GoalStatus
 from sub_vision.msg import TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult, VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult
 from geometry_msgs.msg import Wrench
 
@@ -19,8 +20,12 @@ class locate(smach.State):
 		goal = TrackObjectGoal()
 		goal.objectType = goal.startGate
 		self.client.send_goal(goal)
+		
+		while self.client.get_state() in [GoalStatus.ACTIVE, GoalStatus.PENDING] and not self.preempt_requested():
+			time.sleep(0.01)
 
-		self.client.wait_for_result()
+		if self.preempt_requested():
+			return 'preempted'
 		result = self.client.get_result()
 
 		if result.found:
@@ -44,7 +49,12 @@ class align(smach.State):
 		goal.servotask = goal.gate
 		self.client.send_goal(goal)
 
-		self.client.wait_for_result()
+		while self.client.get_state() in [GoalStatus.ACTIVE, GoalStatus.PENDING] and not self.preempt_requested():
+			time.sleep(0.01)
+
+		if self.preempt_requested():
+			return 'preempted'
+
 		result = self.client.get_result()
 
 		if result.aligned:
@@ -60,14 +70,19 @@ class through(smach.State):
 		self.client = actionlib.SimpleActionClient('track_object', TrackObjectAction)
 		self.client.wait_for_server()
 
-	def execute(self, userdate):
+	def execute(self, userdata):
 		rospy.loginfo("Going through the gate")
 
 		goal = TrackObjectGoal()
 		goal.objectType = goal.startGate
 		self.client.send_goal(goal)
 
-		self.client.wait_for_result()
+		while self.client.get_state() in [GoalStatus.ACTIVE, GoalStatus.PENDING] and not self.preempt_requested():
+			time.sleep(0.01)
+
+		if self.preempt_requested():
+			return 'preempted'
+
 		result = self.client.get_result()
 
 		if not result.found:
@@ -81,3 +96,23 @@ class through(smach.State):
 
 		else:
 			return 'success'
+
+def makeTask():
+	task = smach.StateMachine(outcomes=['DONE'])
+	with task:
+		smach.StateMachine.add('LOCATE', locate(),
+						transitions={'preempted':'DONE',
+							'success': 'ALIGN',
+							'failure': 'LOCATE'})
+
+		smach.StateMachine.add('ALIGN', align(),
+						transitions={'preempted':'DONE',
+							'success': 'THROUGH',
+							'failure': 'LOCATE'})
+
+		smach.StateMachine.add('THROUGH', through(),
+						transitions={'preempted':'DONE',
+							'success': 'DONE',
+							'failure':'LOCATE'})
+	
+	return task
