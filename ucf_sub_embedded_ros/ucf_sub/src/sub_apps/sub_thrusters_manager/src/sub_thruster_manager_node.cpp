@@ -14,8 +14,6 @@
 #include <fstream>
 #include <memory>
 
-#define CONFIG_JSON_PATH "config.json"
-
 inline const std::string BoolToString(const bool b); //http://stackoverflow.com/a/29798
 
 class ThrusterManager {
@@ -23,6 +21,7 @@ class ThrusterManager {
     ros::Subscriber command_subscriber;
     ros::Publisher diagnostics_output;
     self_test::TestRunner self_test_;
+	std::string configPath
 
     sub_trajectory::ThrusterCmd savedMsg;
 
@@ -49,6 +48,7 @@ public:
         initServer = nh_.advertiseService("initThrusters", &ThrusterManager::initService, this);
 
     	nh_.param("/updateRate", updateRate, 30);
+		nh_.param("/thrusterConfigPath", configPath, "config.json");
     }
 
     Json::Value loadConfig(std::string filename)
@@ -76,7 +76,7 @@ public:
     void init()
     {
         thrusterMap.clear();
-        Json::Value thrustersJson = loadConfig(CONFIG_JSON_PATH)["COMPUTE"];
+        Json::Value thrustersJson = loadConfig(configPath)["COMPUTE"];
 
         savedMsg = sub_trajectory::ThrusterCmd();
         savedMsg.cmd.resize(thrustersJson.size(), 0.0);
@@ -206,7 +206,7 @@ public:
     {
         self_test_.setID("thrusterController");
         std::stringstream failedThrusters;
-        Json::Value& thrustersJson = loadConfig(CONFIG_JSON_PATH)["COMPUTE"];
+        Json::Value& thrustersJson = loadConfig(configPath)["COMPUTE"];
         for(int i = 0; i < thrustersJson.size(); i++)
 		{
             int thrusterID = thrustersJson[i]["ID"].asInt();
