@@ -33,7 +33,7 @@ class SafetyState(smach.State):
 		self.leak = msg.data
 	
 	def execute(self, userdata):
-		while not self.leak:
+		while not self.leak and not self.preempt_requested():
 			time.sleep(0.1)
 		
 		return 'ABORT'
