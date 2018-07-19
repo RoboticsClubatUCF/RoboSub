@@ -14,6 +14,8 @@
 #include <fstream>
 #include <memory>
 
+#define CONFIG_JSON_PATH "config.json"
+
 inline const std::string BoolToString(const bool b); //http://stackoverflow.com/a/29798
 
 class ThrusterManager {
@@ -74,7 +76,7 @@ public:
     void init()
     {
         thrusterMap.clear();
-        Json::Value thrustersJson = loadConfig("config.json")["COMPUTE"];
+        Json::Value thrustersJson = loadConfig(CONFIG_JSON_PATH)["COMPUTE"];
 
         savedMsg = sub_trajectory::ThrusterCmd();
         savedMsg.cmd.resize(thrustersJson.size(), 0.0);
@@ -136,7 +138,7 @@ public:
                     diagnostic_msgs::DiagnosticStatus status;
                     status.name = "Thruster_"+std::to_string(iter.first);
                     status.hardware_id = "Thruster_"+std::to_string(iter.first);
-                    
+
                     try {
                         iter.second->updateStatus();
                         iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
@@ -204,7 +206,7 @@ public:
     {
         self_test_.setID("thrusterController");
         std::stringstream failedThrusters;
-        Json::Value& thrustersJson = loadConfig("config.json")["COMPUTE"];
+        Json::Value& thrustersJson = loadConfig(CONFIG_JSON_PATH)["COMPUTE"];
         for(int i = 0; i < thrustersJson.size(); i++)
 		{
             int thrusterID = thrustersJson[i]["ID"].asInt();
