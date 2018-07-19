@@ -1,58 +1,89 @@
 #!/usr/bin/env python
 
 import rospy
-import smach
+import time
+from std_msgs.msg import Bool
+import smach, smach_ros
 
 import gate
 import pole
 
-class SubStates:
-
+class StartState(smach.State):
 	def __init__(self):
-		rospy.loginfo("State Machine has started.")
+		smach.State.__init__(self, outcomes=['GO'])
+		self.waiting = True
+		rospy.Subscriber("/start", Bool, self.go)
+	
+	def go(self, msg):
+		self.waiting = False
+	
+	def execute(self, userdata):
+		while self.waiting and not self.preempt_requested():
+			time.sleep(0.1)
+		
+		return 'GO'
 
-		self.gate = smach.StateMachine(outcomes=['preempted', 'POLE', 'GATE'])
-		self.pole = smach.StateMachine(outcomes=['preempted', 'GATE', 'POLE'])
-		self.tasks = smach.StateMachine(outcomes=['POLE', 'GATE', 'preempted', self.gate, self.pole])
+class SafetyState(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['ABORT', 'RECOVERED'])
+		self.leak = False
+		rospy.Subscriber("/leak", Bool, self.leakCb)
 
-		with self.tasks:
+	def leakCb(self, msg):
+		self.leak = msg.data
+	
+	def execute(self, userdata):
+		while not self.leak:
+			time.sleep(0.1)
+		
+		return 'ABORT'
 
-			smach.StateMachine.add('Start', self.pole, transitions={'POLE':self.pole, 'GATE':self.gate})
+def safetyWrap(task):
+	def safety_outcome(outcome_map):
+		if outcome_map['SAFETY'] == 'ABORT':
+			return 'ABORT'
+		elif outcome_map['SAFETY'] == 'RECOVERED':
+			return 'RECOVERED'
+		else:
+			return outcome_map["TASK"]
 
-			with self.gate:
-				smach.StateMachine.add('LOCATE', gate.locate(),
-						       transitions={'preempted':'preempted',
-								    'success': 'ALIGN',
-								    'failure': 'LOCATE'})
+	def safety_term(outcome_map):
+		return True
 
-				smach.StateMachine.add('ALIGN', gate.align(),
-						       transitions={'preempted':'preempted',
-								    'success': 'THROUGH',
-								    'failure': 'LOCATE'})
+	sm_wrapper = smach.Concurrence(list(task.get_registered_outcomes()) + ['ABORT', 'RECOVERED'],
+									default_outcome='ABORT',
+									outcome_cb=safety_outcome,
+									child_termination_cb=safety_term)
 
-				smach.StateMachine.add('THROUGH', gate.through(),
-						       transitions={'preempted':'preempted',
-								    'success': 'POLE',
-								    'failure':'LOCATE'})
-			with self.pole:
+	with sm_wrapper:
+		smach.Concurrence.add("SAFETY", SafetyState())
+		smach.Concurrence.add("TASK", task)
 
-				smach.StateMachine.add('LOCATE', pole.locate(),
-						       transitions={'preempted':'preempted',
-								    'success': 'ALIGN',
-								    'failure': 'LOCATE'})
+	return sm_wrapper
+	
 
-				smach.StateMachine.add('ALIGN', pole.align(),
-						       transitions={'preempted':'preempted',
-								     'success': 'DRIFT',
-								     'failure': 'LOCATE'})
+def main():
+	rospy.init_node('hippo_sm')
+	rospy.loginfo("State Machine has started.")
 
-				smach.StateMachine.add('DRIFT', pole.drift(),
-						       transitions={'preempted':'preempted',
-								    'success': 'GATE',
-								    'failure': 'LOCATE'})
+	mission_sm = smach.StateMachine(outcomes=['DONE', 'ABORT'])
+
+	with mission_sm:
+
+		smach.StateMachine.add('START', safetyWrap(StartState()), transitions={'GO':'GATE', 'ABORT':'ABORT', 'RECOVERED': 'START'})
+
+		task_gate = safetyWrap(gate.makeTask())
+		task_pole = safetyWrap(pole.makeTask())
+
+		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'POLE', 'ABORT':'ABORT', 'RECOVERED':'GATE'})
+		smach.StateMachine.add('POLE', task_pole, transitions={'DONE':'DONE','ABORT':'ABORT', 'RECOVERED':'POLE'})
+
+	sis = smach_ros.IntrospectionServer("sm_server", mission_sm, "/MISSION")
+	sis.start()
+	result = mission_sm.execute()
+	rospy.loginfo(result)
+	rospy.spin()
+	sis.stop()
 
 if __name__ == '__main__':
-	rospy.init_node('hippo_sm')
-	sm = SubStates()
-	outcome = sm.tasks.execute()
-	rospy.spin()
+	main()

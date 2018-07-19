@@ -12,6 +12,7 @@ from sensor_msgs.msg import CameraInfo, Imu
 from std_msgs.msg import Float32
 import math
 import numpy as np
+from dynamic_reconfigure.server import Server
 from sub_vision.cfg import ServoingConfig
 
 class visual_servo:
@@ -26,7 +27,7 @@ class visual_servo:
         self.lam = 1
         self.translationUnits = None #TODO What is this
 
-	self.reconfigureServer = Server(ServoingConfig, self.reconfigureCallback)
+        self.reconfigureServer = Server(ServoingConfig, self.reconfigureCallback)
 
         self.message = Wrench()
 
@@ -65,11 +66,11 @@ class visual_servo:
         self.fy = self.camera_info.fy()
 
     def reconfigureCallback(self, config, level):
-	self.lam = config["lam"]
-	self.xThreshold = [config["xThreshold"]
-	self.yThreshold = config["yThreshold"]
+        self.lam = config["lam"]
+        self.xThreshold = config["xThreshold"]
+        self.yThreshold = config["yThreshold"]
 
-	return config
+        return config
 
     def interaction_matrix(self, dof, u, v):
         int_matrix = np.array([[-self.lam, 0, u, (u*v)/self.lam,-(self.lam + (np.square(u)/self.lam)), v], [0,-self.lam,v, self.lam + np.square(v)/self.lam, -((u*v)/self.lam), -u]])
