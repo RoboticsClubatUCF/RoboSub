@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import rospy
 
-from geometry_msgs.msg import Wrench
+from geometry_msgs.msg import Wrench, WrenchStamped
 from geometry_msgs.msg import Vector3
 
 from sensor_msgs.msg import Joy
@@ -19,7 +19,7 @@ class ThrusterControl:
 
 	def __init__(self):
 		self.twistMsg = Wrench()
-		self.stabilityMsg = Wrench()
+		self.stabilityMsg = WrenchStamped()
 		self.depthMode = modes.off
 		self.angleMode = modes.off
 		self.yawEnabled = False
@@ -33,7 +33,7 @@ class ThrusterControl:
 		self.limit_pub = rospy.Publisher("/thruster_limit", Float32, queue_size=1000)
 
 		self.autonomy_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
-		self.stability_sub = rospy.Subscriber("/stabilityWrench", Wrench, self.stabilityWrench)
+		self.stability_sub = rospy.Subscriber("/stabilityWrench", WrenchStamped, self.stabilityWrench)
 
 		self.depth_mode_pub = rospy.Publisher("/thrusters/depthMode", StabilityMode, queue_size=1)
 		self.angle_mode_pub = rospy.Publisher("/thrusters/angleMode", StabilityMode, queue_size=1)
@@ -43,7 +43,7 @@ class ThrusterControl:
 
 	def translateCb(self, msg):
 		if(len(msg.axes) < 5):
-			rospy.logerror("JOYSTICK ERROR: Not enough axes")
+			rospy.logerr("JOYSTICK ERROR: Not enough axes")
 			return
 
 		self.twistMsg.force.x = msg.axes[1] * 7
@@ -71,7 +71,7 @@ class ThrusterControl:
 
 	def rotateCb(self, msg):
 		if(len(msg.axes) < 5):
-			rospy.logerror("JOYSTICK ERROR: Not enough axes")
+			rospy.logerr("JOYSTICK ERROR: Not enough axes")
 			return
 		self.twistMsg.torque.x = msg.axes[0] * -0.7
 		self.twistMsg.torque.y = msg.axes[1] * -1
@@ -120,12 +120,12 @@ if __name__== "__main__":
 	msg = Wrench()
 	while not rospy.is_shutdown():
 		if tc.autonomyEnabled < 0:
-			msg.force.x = tc.twistMsg.force.x + tc.stabilityMsg.force.x
-			msg.force.y = tc.twistMsg.force.y + tc.stabilityMsg.force.y
-			msg.force.z = tc.twistMsg.force.z + tc.stabilityMsg.force.z
-			msg.torque.x = tc.twistMsg.torque.x + tc.stabilityMsg.torque.x
-			msg.torque.y = tc.twistMsg.torque.y + tc.stabilityMsg.torque.y
-			msg.torque.z = tc.twistMsg.torque.z + tc.stabilityMsg.torque.z
+			msg.force.x = tc.twistMsg.force.x + tc.stabilityMsg.wrench.force.x
+			msg.force.y = tc.twistMsg.force.y + tc.stabilityMsg.wrench.force.y
+			msg.force.z = tc.twistMsg.force.z + tc.stabilityMsg.wrench.force.z
+			msg.torque.x = tc.twistMsg.torque.x + tc.stabilityMsg.wrench.torque.x
+			msg.torque.y = tc.twistMsg.torque.y + tc.stabilityMsg.wrench.torque.y
+			msg.torque.z = tc.twistMsg.torque.z + tc.stabilityMsg.wrench.torque.z
 
 			tc.twist_pub.publish(msg)
 		rate.sleep()
