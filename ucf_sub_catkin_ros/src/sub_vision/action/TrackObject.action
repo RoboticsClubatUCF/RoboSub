@@ -1,10 +1,18 @@
 #goal
 int32 objectType
+int32 diceNum
 bool servoing
 
 #Constants for object types
 int32 startGate=0
 int32 pole=1
+int32 dice=2
+int32 dice1=3
+int32 dice2=4
+int32 dice3=5
+int32 dice4=6
+int32 dice5=7
+int32 dice6=8
 ---
 #result
 bool stoppedOk
