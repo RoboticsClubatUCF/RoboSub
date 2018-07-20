@@ -4,7 +4,7 @@ import math, time
 
 from nav_msgs.msg import Odometry
 from sub_trajectory.msg import StabilityMode
-from geometry_msgs.msg import Wrench
+from geometry_msgs.msg import Wrench, WrenchStamped
 from std_msgs.msg import Float64
 from dynamic_reconfigure.server import Server
 from sub_trajectory.cfg import StabilityConfig
@@ -45,7 +45,7 @@ class ActiveStabilizer():
 		self.depthMaxForce = 5
 
 		self.orientVelGain = 1
-		self.orientPosGain = [1, 0, 1]
+		self.orientPosGain = [2, 0, 1]
 		self.orientLastError = None
 		self.orientIntegratedError = np.array([0.0,0.0,0.0],dtype="float64")
 		self.orientMaxForce = 2
@@ -56,9 +56,10 @@ class ActiveStabilizer():
 		self.depthModeSubscriber = rospy.Subscriber("/thrusters/depthMode", StabilityMode, self.depthModeCallback, queue_size=1)
 		self.odomSubcriber = rospy.Subscriber("/odometry/filtered",Odometry, self.callback, queue_size=1)
 
-		self.stabilityPublisher = rospy.Publisher("/stabilityWrench", Wrench, queue_size=1)
+		self.stabilityPublisher = rospy.Publisher("/stabilityWrench", WrenchStamped, queue_size=1)
 
-		self.stabilityWrench = Wrench()
+		self.stabilityWrench = WrenchStamped()
+		self.stabilityWrench.header.frame_id = 'base_link'
 
 		self.setPointPub = rospy.Publisher("/setpoint", Float64, queue_size=10)
 
@@ -113,16 +114,16 @@ class ActiveStabilizer():
 			self.orientIntegratedError = np.array([0.0,0.0,0.0],dtype="float64")
 
 		if self.curDepthMode == StabilityMode.off:
-			self.stabilityWrench.force.x = 0
-			self.stabilityWrench.force.y = 0
-			self.stabilityWrench.force.z = 0
+			self.stabilityWrench.wrench.force.x = 0
+			self.stabilityWrench.wrench.force.y = 0
+			self.stabilityWrench.wrench.force.z = 0
 		
 		elif self.curDepthMode == StabilityMode.velocity:
 			quat = rosToArray(msg.pose.pose.orientation)
 			counterVec = rotateVector(quat, [0,0,-self.depthVelGain*msg.twist.twist.linear.z])
-			self.stabilityWrench.force.x = counterVec[0]
-			self.stabilityWrench.force.y = counterVec[1]
-			self.stabilityWrench.force.z = counterVec[2]
+			self.stabilityWrench.wrench.force.x = counterVec[0]
+			self.stabilityWrench.wrench.force.y = counterVec[1]
+			self.stabilityWrench.wrench.force.z = counterVec[2]
 
 		elif self.curDepthMode == StabilityMode.position:
 			if self.saveDepth:
@@ -154,28 +155,28 @@ class ActiveStabilizer():
 			quat = rosToArray(msg.pose.pose.orientation)
 			quat = tf.transformations.quaternion_conjugate(quat)
 			counterVec = rotateVector(quat, [0,0,proportionalCorrection + derivativeCorrection + integralCorrection])
-			self.stabilityWrench.force.x = counterVec[0]
-			self.stabilityWrench.force.y = counterVec[1]
-			self.stabilityWrench.force.z = counterVec[2]
+			self.stabilityWrench.wrench.force.x = counterVec[0]
+			self.stabilityWrench.wrench.force.y = counterVec[1]
+			self.stabilityWrench.wrench.force.z = counterVec[2]
 
 		else:
-			self.stabilityWrench.force.x = 0
-			self.stabilityWrench.force.y = 0
-			self.stabilityWrench.force.z = 0
+			self.stabilityWrench.wrench.force.x = 0
+			self.stabilityWrench.wrench.force.y = 0
+			self.stabilityWrench.wrench.force.z = 0
 
 		if self.curAngleMode == StabilityMode.off:
-			self.stabilityWrench.torque.x = 0
-			self.stabilityWrench.torque.y = 0
-			self.stabilityWrench.torque.z = 0
+			self.stabilityWrench.wrench.torque.x = 0
+			self.stabilityWrench.wrench.torque.y = 0
+			self.stabilityWrench.wrench.torque.z = 0
 		
 		elif self.curAngleMode == StabilityMode.velocity:
-			self.stabilityWrench.torque.x = -self.orientVelGain * msg.twist.twist.angular.x
-			self.stabilityWrench.torque.y = -self.orientVelGain * msg.twist.twist.angular.y
+			self.stabilityWrench.wrench.torque.x = -self.orientVelGain * msg.twist.twist.angular.x
+			self.stabilityWrench.wrench.torque.y = -self.orientVelGain * msg.twist.twist.angular.y
 
 			if self.yawEnabled:
-				self.stabilityWrench.torque.z = -self.orientVelGain * msg.twist.twist.angular.z
+				self.stabilityWrench.wrench.torque.z = -self.orientVelGain * msg.twist.twist.angular.z
 			else:
-				self.stabilityWrench.torque.z = 0.0
+				self.stabilityWrench.wrench.torque.z = 0.0
 
 		elif self.curAngleMode == StabilityMode.position:
 			if self.saveOrientation:
@@ -188,44 +189,45 @@ class ActiveStabilizer():
 			) #Find rotation from current to target position
 
 			#TODO: Do we need to transform the error and how
-			#subLocalError = tf.transformations.quaternion_multiply(
-			#	error, rosToArray(msg.pose.orientation)
-			#) #Rotate rotation from current to target by rotation from world to sub
+			error = rotateVector(tf.transformations.quaternion_conjugate(rosToArray(msg.pose.pose.orientation)),
+								 [error[0], error[1],error[2]])
 
-			rpyError = np.array(tf.transformations.euler_from_quaternion(error))
+			#rpyError = np.array(tf.transformations.euler_from_quaternion(subLocalError))
+			rpyError = np.array([error[0], error[1],error[2]])
 
-			proportionalCorrection = -self.orientPosGain[0]*rpyError
+			proportionalCorrection = self.orientPosGain[0]*rpyError
 			integralCorrection = np.array([0,0,0])
 			derivativeCorrection = np.array([0,0,0])
 			
 			#TODO: Should we actually use the update time for this stuff?
 			if self.lastUpdateTime is not None:
 				#Depth derivative computation
-				derivativeCorrection = -self.orientPosGain[2] * (rpyError - self.orientLastError) / (timeNow - self.lastUpdateTime)
+				derivativeCorrection = self.orientPosGain[2] * (rpyError - self.orientLastError) / (timeNow - self.lastUpdateTime)
 				self.orientLastError = rpyError
 				if self.orientPosGain[1] > 0.0001:
 					self.orientIntegratedError += rpyError * (timeNow - self.lastUpdateTime)
-				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
+				integralCorrection = self.orientPosGain[1] * self.orientIntegratedError
 				#Back-calculation integrator windup prevention
 				if self.orientPosGain[1] > 0.0001:
 					for i in range(3):
 						if abs(proportionalCorrection[i] + derivativeCorrection[i] + integralCorrection[i]) > self.orientMaxForce:
-							self.orientIntegratedError[i] = ((-np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/-self.orientPosGain[1]
+							self.orientIntegratedError[i] = ((np.sign(rpyError[i])*self.orientMaxForce) - derivativeCorrection[i] - proportionalCorrection[i])/self.orientPosGain[1]
 				
-				integralCorrection = -self.orientPosGain[1] * self.orientIntegratedError
+				integralCorrection = self.orientPosGain[1] * self.orientIntegratedError
 
-			self.stabilityWrench.torque.x = proportionalCorrection[0] + derivativeCorrection[0] + integralCorrection[0]
-			self.stabilityWrench.torque.y = proportionalCorrection[1] + derivativeCorrection[1] + integralCorrection[1]
+			self.stabilityWrench.wrench.torque.x = proportionalCorrection[0] + derivativeCorrection[0] + integralCorrection[0]
+			self.stabilityWrench.wrench.torque.y = proportionalCorrection[1] + derivativeCorrection[1] + integralCorrection[1]
 			if self.yawEnabled:
-				self.stabilityWrench.torque.z = proportionalCorrection[2] + derivativeCorrection[2] + integralCorrection[2]
+				self.stabilityWrench.wrench.torque.z = proportionalCorrection[2] + derivativeCorrection[2] + integralCorrection[2]
 			else:
-				self.stabilityWrench.torque.z = 0.0
+				self.stabilityWrench.wrench.torque.z = 0.0
 
 		else:
-			self.stabilityWrench.torque.x = 0
-			self.stabilityWrench.torque.y = 0
-			self.stabilityWrench.torque.z = 0
+			self.stabilityWrench.wrench.torque.x = 0
+			self.stabilityWrench.wrench.torque.y = 0
+			self.stabilityWrench.wrench.torque.z = 0
 
+		self.stabilityWrench.header.stamp = rospy.Time.now()
 		self.stabilityPublisher.publish(self.stabilityWrench)
 		self.lastUpdateTime = timeNow
 
