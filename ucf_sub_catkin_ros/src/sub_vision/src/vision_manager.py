@@ -16,7 +16,9 @@ from cv_bridge import CvBridge, CvBridgeError
 from wfov_camera_msgs.msg import WFOVImage
 
 from polefinder import PoleFinder
-import gatefinder, navbarfinder, bouyfinder, vision_utils
+from gatefinder import GateFinder
+from dicefinder import DiceFinder
+import navbarfinder, bouyfinder, vision_utils
 
 class VisionServer:
     def __init__(self):
@@ -38,7 +40,8 @@ class VisionServer:
         self.stereoModel = image_geometry.StereoCameraModel()
 
         self.poleFinder = PoleFinder()
-        self.gatefinder = gatefinder.GateFinder()
+        self.gatefinder = GateFinder()
+        self.dicefinder = DiceFinder()
         self.response = TrackObjectResult()
 
         self.downSub = rospy.Subscriber('/down_camera/image_color', Image, self.downwardsCallback)
@@ -98,6 +101,15 @@ class VisionServer:
 
             elif self.targetType == TrackObjectGoal.pole:
                 self.feedback = self.poleFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel)
+                if self.feedback.found:
+                    self.server.publish_feedback(self.feedback)
+                    self.feedback.found = False
+                    self.response.found=True
+                if not goal.servoing:
+                    self.running = False
+
+            elif self.targetType == TrackObjectGoal.dice:
+                self.feedback = self.diceFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel,goal.diceNum)
                 if self.feedback.found:
                     self.server.publish_feedback(self.feedback)
                     self.feedback.found = False
