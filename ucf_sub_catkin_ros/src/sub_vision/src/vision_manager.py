@@ -25,6 +25,11 @@ class VisionServer:
         self.server = actionlib.SimpleActionServer('track_object', TrackObjectAction, self.execute, False)
         self.server.start()
 
+	self.lower = None
+	self.upper = None
+
+	srv = Server(ThresholdsConfig, self.updateThresholds)
+
         self.bridge = CvBridge()
 
         self.leftImage = np.zeros((1,1,3), np.uint8)
@@ -61,6 +66,10 @@ class VisionServer:
         
 
         #self.thresholds = self.loadThresholds()
+
+   def updateThresholds(self, config, level):
+	self.lower = np.array(config["lowH"], config["lowS"], config["lowL"],dtype=np.uint8)
+	self.upper = np.array(config["upH"], config["upS"], config["upL"],dtype=np.uint8)
 
     def execute(self, goal):
         self.targetType = goal.objectType

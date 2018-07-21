@@ -21,6 +21,8 @@ class threshold_finder:
         self.bridge = CvBridge()
 	self.image_sub = rospy.Subscriber("/stereo/right/image_raw", Image, self.callback)
         self.image_thresholds = rospy.Publisher("/threshold_values",numpy_msg(Floats), queue_size=10)
+	client = dynamic_reconfigure.client.Client("vision_server", timeout=30, config_callback=callback)
+
 
     def pick_colors(self, event, x, y, flags, frame):
         if event == cv2.EVENT_LBUTTONUP:
@@ -31,7 +33,10 @@ class threshold_finder:
 	    maxb = max(c[0] for c in self.colors)
             maxg = max(c[1] for c in self.colors)
             maxr = max(c[2] for c in self.colors)
-            print (minr, ming, minb, maxr, maxg, maxb)
+	    thresholds = np.array([(minb, ming, minr),maxb,maxg,maxr)])
+	    hsl = cv2.cvtColor(thresholds, cv2.COLOR_BGR2HSL)
+	    client.update_configuration({"lowH":hsl[0][0], "lowS":hsl[0][1], "lowL":hsl[0][2], "highH":hsl[1][0], "highS":hsl[1][1], "highL":hsl[1][2]})
+	    print (minr, ming, minb, maxr, maxg, maxb)
 
             lb = [minb,ming,minr]
             ub = [maxb,maxg,maxr]
@@ -62,7 +67,7 @@ class threshold_finder:
 		pass
 
 def main(args):
-        tf = threshold_finder()
+	tf = threshold_finder()
         rospy.init_node('threshold_finder', anonymous=False)
         cv2.namedWindow('Sub Camera')
 	cv2.setMouseCallback('Sub Camera', tf.pick_colors, tf.frame)
@@ -72,7 +77,7 @@ def main(args):
 			cv2.imshow('Sub Camera',tf.frame)
 			key=cv2.waitKey(1)
 			if key ==27:
-				sys.exit()	
+				sys.exit()
 			tf.hasNewFrame = False
         except KeyboardInterrupt():
             print("Shutting down")
