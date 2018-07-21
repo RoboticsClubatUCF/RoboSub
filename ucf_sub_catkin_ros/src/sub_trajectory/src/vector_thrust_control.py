@@ -8,6 +8,9 @@ import numpy as np
 import math, time
 from scipy.optimize import minimize
 
+from dynamic_reconfigure.server import Server
+from sub_trajectory.cfg import VectorConfig
+
 def rosToArray(msg): #Convert a ros message with 1-4 dimensions into a numpy array
     return np.array([getattr(msg, key) for key in ("x", "y", "z", "w") if hasattr(msg, key)])
     
@@ -17,7 +20,7 @@ def rosToWrench(msg): #convert a ros message with a force and torque vector into
 class VectorController:
 
     def __init__(self): #Get parameters from rosparam/URDF/TF, get thruster objects ready
-        self.thrusterStatuses = dict()
+        self.thrusterStatuses = {int(k):True for k in rospy.get_param("/thrusters")}
         self.thrusterData = {int(k):v for k,v in rospy.get_param("/thrusters").items()}
         
         self.thrustToWrench = np.zeros((6, max(sorted(self.thrusterData))+1))
@@ -25,14 +28,25 @@ class VectorController:
         
         self.updateControlMatrix()
         rospy.loginfo("Initialized with "+ str(len(self.thrusterData)) + " thrusters")
+
+        self.reconfigureServer = Server(VectorConfig, self.reconfigureCallback)
+        self.thrust_limit = 0.2
         
-   
+    def reconfigureCallback(self, config, level):
+        self.thrust_limit = config["thrust_limit"]
+        for k in config:
+            if k.startswith("thruster"):
+                self.thrusterStatuses[int(k[13])] = config[k]
+        
+        self.updateControlMatrix()
+        return config
+
     def updateControlMatrix(self):
         B = []
         
         for channel in sorted(self.thrusterData):
             #rospy.loginfo("Adding thruster " + str(channel))
-            if True: #self.thrusterStatuses.has_key(channel) and self.thrusterStatuses[channel].thrusterOk:
+            if self.thrusterStatuses[channel]:
                 #rospy.loginfo("Thruster " + str(channel) + " is ok")
                 
                 #TODO: should we multiply by the actual thrust limit? I think so
@@ -76,14 +90,13 @@ class VectorController:
         #optimization stuff is based on CUAUV and UF's methods
         optimize = False
         for v in pinvOutput:
-            if -0.2 > v or 0.2 < v:
+            if -self.thrust_limit > v or self.thrust_limit < v:
                 optimize = True
                 break
                 
         if np.linalg.norm(desiredWrench - self.thrustToWrench.dot(pinvOutput)) > 0.01:
             optimize = True
             
-        #rospy.loginfo("Error: " + str(np.linalg.norm(desiredWrench - self.thrustToWrench.dot(pinvOutput))))
         
         #So we use this to apply a different set of power coefficients in order to better fit the data from bluerobotics
         #I have no idea if this causes stability issues or something but /shrug
@@ -115,10 +128,10 @@ class VectorController:
             #What happens if x0 is out of bounds? A: The optimizer ignores the bounds
             minimized = minimize(
                 fun=objective,
-                x0=0.2*pinvOutput/np.linalg.norm(pinvOutput),
+                x0=self.thrust_limit*pinvOutput/np.linalg.norm(pinvOutput),
                 method="SLSQP",
                 jac=False,#jacobian,
-                bounds=[(-0.2,0.2) for _ in self.thrusterData],
+                bounds=[(-self.thrust_limit,self.thrust_limit) for _ in self.thrusterData],
                 tol=0.0001)
         
         message = ThrusterCmd()
@@ -168,9 +181,10 @@ class VectorController:
         rate = rospy.Rate(5)
         while not rospy.is_shutdown():
             for k, v in self.thrusterStatuses.items():
-                if v.header.stamp + rospy.Duration(3, 0) < rospy.get_rostime() and self.thrusterStatuses[k].thrusterOk: #3 second timeout for thrusters
-                    rospy.logwarn("Thruster " + str(k) + " timed out for " + str(rospy.get_rostime() - v.header.stamp))
-                    self.thrusterStatuses[k].thrusterOk = False
+                #if v.header.stamp + rospy.Duration(3, 0) < rospy.get_rostime() and self.thrusterStatuses[k].thrusterOk: #3 second timeout for thrusters
+                    pass
+                    #rospy.logwarn("Thruster " + str(k) + " timed out for " + str(rospy.get_rostime() - v.header.stamp))
+                    #self.thrusterStatuses[k].thrusterOk = False
             rate.sleep()
             
 if __name__ == "__main__":

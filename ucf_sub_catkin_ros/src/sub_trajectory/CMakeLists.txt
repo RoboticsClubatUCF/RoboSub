@@ -37,6 +37,7 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs dynam
 
 generate_dynamic_reconfigure_options(
   cfg/active_stability.cfg
+  cfg/vector_thrust_control.cfg
 )
 
 ## Generate added messages and services with any dependencies listed here

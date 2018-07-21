@@ -7,6 +7,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include <diagnostic_msgs/DiagnosticStatus.h>
+#include <diagnostic_msgs/DiagnosticArray.h>
 #include <diagnostic_msgs/SelfTest.h> //TODO: implement self tests
 #include <self_test/self_test.h>
 
@@ -21,7 +22,7 @@ class ThrusterManager {
     ros::Subscriber command_subscriber;
     ros::Publisher diagnostics_output;
     self_test::TestRunner self_test_;
-	std::string configPath
+	std::string configPath;
 
     sub_trajectory::ThrusterCmd savedMsg;
 
@@ -48,7 +49,7 @@ public:
         initServer = nh_.advertiseService("initThrusters", &ThrusterManager::initService, this);
 
     	nh_.param("/updateRate", updateRate, 30);
-		nh_.param("/thrusterConfigPath", configPath, "config.json");
+		nh_.param("/thrusterConfigPath", configPath, std::string("config.json");
     }
 
     Json::Value loadConfig(std::string filename)
