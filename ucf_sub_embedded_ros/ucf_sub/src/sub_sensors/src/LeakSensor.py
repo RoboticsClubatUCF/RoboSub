@@ -19,9 +19,9 @@ def publish():
 	diag = DiagnosticArray()
 	while not rospy.is_shutdown():
 		levelData=0
+		leak.data = gpio.input(CHANNEL)
 		if (leak.data):
 			levelData=2
-		leak.data = gpio.input(CHANNEL)
 		diag.status = [DiagnosticStatus(name='Leak', message=str(leak.data), level=levelData)]
 		leakPub.publish(leak)
 		diagPub.publish(diag)
