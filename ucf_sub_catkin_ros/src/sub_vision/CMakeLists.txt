@@ -34,6 +34,7 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs dynam
 
 generate_dynamic_reconfigure_options(
   cfg/visual_servo.cfg
+  cfg/vision_server.cfg
 )
 
 ## Generate added messages and services with any dependencies listed here
