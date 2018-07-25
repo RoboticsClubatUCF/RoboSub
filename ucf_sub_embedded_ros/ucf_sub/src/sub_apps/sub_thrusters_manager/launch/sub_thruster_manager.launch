@@ -1,5 +1,5 @@
 <launch>
   <node pkg="sub_thrusters_manager" type="sub_thruster_manager_node" name="sub_thruster_manager">
-      <param name="/thrusterConfigPath" value="/home/nvidia/RoboSub/ucf_sub_embedded_ros"/>
+      <param name="/thrusterConfigPath" value="$(find sub_thrusters_manager)/src/config.json"/>
   </node>
 </launch>
