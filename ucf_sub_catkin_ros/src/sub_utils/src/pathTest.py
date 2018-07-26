@@ -53,7 +53,7 @@ while(cap.isOpened()):
 	element = cv2.getStructuringElement(cv2.MORPH_CROSS,(20,20))
 	done = False
 
-	while( not done):
+	while(not done):
 	    eroded = cv2.erode(mask,element)
 	    temp = cv2.dilate(eroded,element)
 	    temp = cv2.subtract(mask,temp)
