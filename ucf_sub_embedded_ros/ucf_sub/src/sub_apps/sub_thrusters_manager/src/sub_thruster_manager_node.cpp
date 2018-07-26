@@ -22,7 +22,7 @@ class ThrusterManager {
     ros::Subscriber command_subscriber;
     ros::Publisher diagnostics_output;
     self_test::TestRunner self_test_;
-	std::string configPath;
+    std::string configPath;
 
     sub_trajectory::ThrusterCmd savedMsg;
 
@@ -48,8 +48,8 @@ public:
 
         initServer = nh_.advertiseService("initThrusters", &ThrusterManager::initService, this);
 
-    	nh_.param("/updateRate", updateRate, 30);
-		nh_.param("/thrusterConfigPath", configPath, std::string("config.json");
+        nh_.param("/updateRate", updateRate, 30);
+        nh_.param("/thrusterConfigPath", configPath, std::string("config.json"));
     }
 
     Json::Value loadConfig(std::string filename)
@@ -101,6 +101,7 @@ public:
                 diagnostic_msgs::DiagnosticStatus status;
                 status.name = "Thruster_"+thrustersJson[i]["Address"].asString();
                 status.hardware_id = "Thruster_"+thrustersJson[i]["Address"].asString();
+                status.message = std::string("Couldn't connect");
                 status.level = status.ERROR;
                 diag.status.push_back(status);
             }
@@ -123,7 +124,25 @@ public:
                 loopCount = 0;
             }
 
-            if(thrusterMap.size() != savedMsg.cmd.size())
+            if(thrusterMap.size() == 0)
+            {
+                diagnostic_msgs::DiagnosticStatus status;
+                status.name = "Thrusters";
+                status.hardware_id = "Thrusters";
+                status.level = status.WARN;
+                diag.status.push_back(status);
+                ROS_WARN("No thrusters initialized");
+            }
+            else if(savedMsg.cmd.size() == 0)
+            {
+                diagnostic_msgs::DiagnosticStatus status;
+                status.name = "Thrusters";
+                status.hardware_id = "Thrusters";
+                status.level = status.WARN;
+                diag.status.push_back(status);
+                ROS_WARN("No comand message");
+            }
+            else if(thrusterMap.size() != savedMsg.cmd.size())
             {
                 diagnostic_msgs::DiagnosticStatus status;
                 status.name = "Thrusters";
@@ -199,7 +218,7 @@ public:
 
     void thrusterCb(const sub_trajectory::ThrusterCmd &msg)
     {
-		savedMsg = msg;
+        savedMsg = msg;
     }
 
     //Self test function
@@ -209,7 +228,7 @@ public:
         std::stringstream failedThrusters;
         Json::Value& thrustersJson = loadConfig(configPath)["COMPUTE"];
         for(int i = 0; i < thrustersJson.size(); i++)
-		{
+        {
             int thrusterID = thrustersJson[i]["ID"].asInt();
             int thrusterType = thrustersJson[i]["Type"].asInt(); //TODO: support for multiple thruster types
             int thrusterAddress = thrustersJson[i]["Address"].asInt();

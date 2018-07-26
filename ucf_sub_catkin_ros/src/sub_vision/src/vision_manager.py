@@ -14,6 +14,7 @@ from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 from wfov_camera_msgs.msg import WFOVImage
+from dynamic_reconfigure.server import Server
 
 from polefinder import PoleFinder
 from gatefinder import GateFinder
@@ -25,10 +26,10 @@ class VisionServer:
         self.server = actionlib.SimpleActionServer('track_object', TrackObjectAction, self.execute, False)
         self.server.start()
 
-	self.lower = None
-	self.upper = None
+        self.lower = None
+        self.upper = None
 
-	srv = Server(ThresholdsConfig, self.updateThresholds)
+        self.srv = Server(ThresholdsConfig, self.updateThresholds)
 
         self.bridge = CvBridge()
 
@@ -67,9 +68,9 @@ class VisionServer:
 
         #self.thresholds = self.loadThresholds()
 
-   def updateThresholds(self, config, level):
-	self.lower = np.array(config["lowH"], config["lowS"], config["lowL"],dtype=np.uint8)
-	self.upper = np.array(config["upH"], config["upS"], config["upL"],dtype=np.uint8)
+    def updateThresholds(self, config, level):
+        self.lower = np.array(config["lowH"], config["lowS"], config["lowL"],dtype=np.uint8)
+        self.upper = np.array(config["upH"], config["upS"], config["upL"],dtype=np.uint8)
 
     def execute(self, goal):
         self.targetType = goal.objectType
