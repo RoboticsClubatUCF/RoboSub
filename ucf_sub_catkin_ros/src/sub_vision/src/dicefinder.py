@@ -37,20 +37,20 @@ class DiceFinder:
         bin, contours, _hierarchy = cv.findContours(bin, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
         
         for cnt in contours:
-                    cnt_len = cv.arcLength(cnt, True)
-                    cnt = cv.approxPolyDP(cnt, 0.02*cnt_len, True)
+            cnt_len = cv.arcLength(cnt, True)
+            cnt = cv.approxPolyDP(cnt, 0.02*cnt_len, True)
+            
+            if len(cnt) == 4 and cv.contourArea(cnt) > 1000 and cv.isContourConvex(cnt):
+                cnt = cnt.reshape(-1, 2)
+                max_cos = np.max([self.angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4]) for i in range(4)])
+                
+                if max_cos < 0.1:
+                    rect = cv.minAreaRect(cnt)
                     
-                    if len(cnt) == 4 and cv.contourArea(cnt) > 1000 and cv.isContourConvex(cnt):
-                        cnt = cnt.reshape(-1, 2)
-                        max_cos = np.max([angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4] ) for i in range(4)])
-                        
-                        if max_cos < 0.1:
-                            rect = cv.minAreaRect(cnt)
-                            
-                            if rect[1][0] < img.shape[0] * 0.9:
-                                if rect[1][1] < img.shape[1] * 0.9:
-                                    #coordinates = (int(rect[0][0]-rect[1][0]/2),int(rect[0][0]+rect[1][0]/2),int(rect[0][1]-rect[1][1]/2), int(rect[0][1]+rect[1][1]/2))
-                                    squares.append(rect)
+                    if rect[1][0] < img.shape[0] * 0.9:
+                        if rect[1][1] < img.shape[1] * 0.9:
+                            #coordinates = (int(rect[0][0]-rect[1][0]/2),int(rect[0][0]+rect[1][0]/2),int(rect[0][1]-rect[1][1]/2), int(rect[0][1]+rect[1][1]/2))
+                            squares.append(rect)
         return squares
 
     def classifyDice(self,img,dice):
