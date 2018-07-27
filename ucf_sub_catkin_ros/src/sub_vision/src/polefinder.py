@@ -12,12 +12,12 @@ class PoleFinder:
 		self.bridge = CvBridge()
 		self.image_pub = rospy.Publisher("/thresh_image", Image, queue_size=10)
 
-	def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel):
+	def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, upper, lower):
 		
 		imageHLS = cv2.cvtColor(imageRightRect, cv2.COLOR_BGR2HLS)
 		#resized = cv2.resize(imageLeftRect, width=300)
-		
-		mask=cv2.inRange(imageHLS, np.array([5, 102, 180],dtype='uint8'),np.array([25, 153, 255],dtype='uint8')) #HSV thresholds
+		mask=cv2.inRange(imageHLS, np.array(lower,dtype='uint8'),np.array(upper,dtype='uint8')) #HLS thresholds
+		#mask=cv2.inRange(imageHLS, np.array([5, 102, 180],dtype='uint8'),np.array([25, 153, 255],dtype='uint8')) #HLS thresholds
 		
 		kernel = np.ones((5,5),np.uint8)
 		mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)

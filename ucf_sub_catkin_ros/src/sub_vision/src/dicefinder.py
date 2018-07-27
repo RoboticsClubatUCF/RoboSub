@@ -9,9 +9,9 @@ class DiceFinder:
     def __init__(self):
         self.bridge = CvBridge()
 
-    def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, desiredDice):
-        dice = self.findDice(img)
-        diceOrder = self.classifyDice(img,dice)
+    def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, desiredDice, upper, lower):
+        dice = self.findDice(imageRightRect)
+        diceOrder = self.classifyDice(imageRightRect,dice)
 
         neededDice = dice[diceOrder.index(desiredDice-2)]
 
@@ -24,11 +24,11 @@ class DiceFinder:
 
         return feedback
 
-    def angle_cos(p0, p1, p2):
+    def angle_cos(self, p0, p1, p2):
         d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
         return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
 
-    def findDice(img):
+    def findDice(self,img):
         img = cv.GaussianBlur(img, (5, 5), 0)
         
         squares = []
@@ -53,7 +53,7 @@ class DiceFinder:
                                     squares.append(rect)
         return squares
 
-    def classifyDice(img,dice):
+    def classifyDice(self,img,dice):
         diceOrder = []
         
         for s in dice:

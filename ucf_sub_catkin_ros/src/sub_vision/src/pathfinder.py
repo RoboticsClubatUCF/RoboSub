@@ -5,12 +5,12 @@ class PathFinder:
 	def __init__(self):
 		pass
 
-	def process(self, imageDown, downCameraModel)
+	def process(self, imageDown, downCameraModel, upper, lower):
 
 		
 		imageHLS = cv2.cvtColor(imageDown, cv2.COLOR_BGR2HLS)
 
-		mask=cv2.inRange(imageHLS, np.array([5, 75, 110],dtype='uint8'),np.array([50, 230, 255],dtype='uint8'))
+		mask=cv2.inRange(imageHLS, np.array(lower,dtype='uint8'),np.array(upper,dtype='uint8'))
 
 		_, cnts, _ = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 		kernel = np.ones((5,5),np.uint8)
