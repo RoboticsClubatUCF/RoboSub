@@ -116,7 +116,7 @@ def main():
 
 	with mission_sm:
 
-		smach.StateMachine.add('START', safetyWrap(StartState()), transitions={'GO':'GATE', 'ABORT':'ABORT', 'RECOVERED': 'START'})
+		smach.StateMachine.add('START', safetyWrap(StartState()), transitions={'GO':'GATE', 'ABORT':'ABORT', 'RECOVERED': 'START', 'ESTOP': 'START'})
 
 		task_gate = safetyWrap(gate.makeTask())
 		task_path1 = safetyWrap(path.makeTask())
@@ -124,11 +124,11 @@ def main():
 		task_path2 = safetyWrap(path.makeTask())
 		task_slots = safetyWrap(slots.makeTask())
 
-		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'PATH1', 'ABORT':'ABORT', 'RECOVERED':'GATE'})
-		smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1'})
-		smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE'})
-		smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2'})
-		smach.StateMachine.add('SLOTS', task_slots, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'SLOTS'})
+		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'PATH1', 'ABORT':'ABORT', 'RECOVERED':'GATE', 'ESTOP': 'START'})
+		smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1', 'ESTOP': 'START'})
+		smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE', 'ESTOP': 'START'})
+		smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2', 'ESTOP': 'START'})
+		smach.StateMachine.add('SLOTS', task_slots, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'SLOTS', 'ESTOP': 'START'})
 
 		smach.StateMachine.add('STOP', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE', 'ABORT':'ABORT', 'RECOVERED':'STOP'}, remapping={'depth':'stop_depth'})
 		smach.StateMachine.add('ABORT', StopState(), transitions={'RESTART':'START', 'DONE':'DONE'}, remapping={'depth':'abort_depth'})
