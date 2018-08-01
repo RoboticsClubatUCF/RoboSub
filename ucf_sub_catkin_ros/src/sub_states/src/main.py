@@ -70,7 +70,7 @@ class SafetyState(smach.State):
 				thusterErrors++
 		if thrusterErrors > 7:
 			self.estop = True
-		elif thrusterErrors > 0:
+		elif thrusterErrors > 1:
 			self.critError = True
 
 	def execute(self, userdata):
