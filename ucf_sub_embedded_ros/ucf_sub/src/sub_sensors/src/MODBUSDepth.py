@@ -28,7 +28,7 @@ def publish():
 	pose = PoseWithCovarianceStamped()
 	pose.header.frame_id = "odom"
 	pose.pose.covariance = [0.0]*36
-	pose.pose.covariance[14] = 0.01s
+	pose.pose.covariance[14] = 0.01
 	pose.pose.pose.orientation.x = 0.0
 	pose.pose.pose.orientation.y = 0.0
 	pose.pose.pose.orientation.z = 0.0
