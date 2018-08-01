@@ -124,14 +124,14 @@ def main():
 		task_path2 = safetyWrap(path.makeTask())
 		task_slots = safetyWrap(slots.makeTask())
 
-		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'PATH', 'ABORT':'ABORT', 'RECOVERED':'GATE'})
+		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'PATH1', 'ABORT':'ABORT', 'RECOVERED':'GATE'})
 		smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1'})
 		smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE'})
 		smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2'})
 		smach.StateMachine.add('SLOTS', task_slots, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'SLOTS'})
 
-		smach.StateMachine.add('STOP', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE'}, remapping={'depth':'stop_depth'})
-		smach.StateMachine.add('ABORT', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE'}, remapping={'depth':'abort_depth'})
+		smach.StateMachine.add('STOP', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE', 'ABORT':'ABORT', 'RECOVERED':'STOP'}, remapping={'depth':'stop_depth'})
+		smach.StateMachine.add('ABORT', StopState(), transitions={'RESTART':'START', 'DONE':'DONE'}, remapping={'depth':'abort_depth'})
 
 	sis = smach_ros.IntrospectionServer("sm_server", mission_sm, "/MISSION")
 	sis.start()
