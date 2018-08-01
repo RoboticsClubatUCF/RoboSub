@@ -5,7 +5,8 @@ from pymodbus.client.sync import ModbusSerialClient as modbus
 from pymodbus.exceptions import ModbusIOException
 from sensor_msgs.msg import Temperature
 from std_msgs.msg import Float32
-from geometry_msgs.msg import PoseWithCovarianceStamped, DiagnosticArray, DiagnosticStatus
+from geometry_msgs.msg import PoseWithCovarianceStamped
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 
 def publish():
 	sensor = modbus(method='rtu', port='/dev/ucfsub/depth', baudrate=115200)
@@ -28,7 +29,7 @@ def publish():
 	pose = PoseWithCovarianceStamped()
 	pose.header.frame_id = "odom"
 	pose.pose.covariance = [0.0]*36
-	pose.pose.covariance[14] = 0.01s
+	pose.pose.covariance[14] = 0.01
 	pose.pose.pose.orientation.x = 0.0
 	pose.pose.pose.orientation.y = 0.0
 	pose.pose.pose.orientation.z = 0.0
@@ -37,21 +38,23 @@ def publish():
 	pose.pose.pose.position.y = 0.0
 
 	while not rospy.is_shutdown():
-		diag.status = [DiagnosticStatus(name='Leak', message=str(type(rr) is type(ModbusIOException), level=int(x == 'true')*2)]
 		if loop >= updateRate:
 			rr = sensor.read_holding_registers(address=8, count=2, unit=1)
-			temp.temperature = struct.unpack('>f',struct.pack('>HH', *rr.registers))[0]
-			tempPub.publish(temp)
+			if type(rr) is not type(ModbusIOException):
+				temp.temperature = struct.unpack('>f',struct.pack('>HH', *rr.registers))[0]
+				tempPub.publish(temp)
 			loop = 0
 		loop += 1
 
 		rr = sensor.read_holding_registers(address=2, count=2, unit=1)
-		depth.data = 10.2*struct.unpack('>f',struct.pack('>HH', *rr.registers))[0]
+		if type(rr) is not type(ModbusIOException):
+			depth.data = 10.2*struct.unpack('>f',struct.pack('>HH', *rr.registers))[0]
 
-		pose.pose.pose.position.z = depth.data
-		pose.header.stamp = rospy.Time.now()
-		posePub.publish(pose)
-		depthPub.publish(depth)
+			pose.pose.pose.position.z = depth.data
+			pose.header.stamp = rospy.Time.now()
+			posePub.publish(pose)
+			depthPub.publish(depth)
+		diag.status = [DiagnosticStatus(name='Depth', message=str(type(rr) is type(ModbusIOException)), level=int(rr == 'true')*2)]
 		freq.sleep()
 
 if __name__ == '__main__':

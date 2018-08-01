@@ -9,9 +9,9 @@ class DiceFinder:
     def __init__(self):
         self.bridge = CvBridge()
 
-    def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, desiredDice):
-        dice = self.findDice(img)
-        diceOrder = self.classifyDice(img,dice)
+    def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, desiredDice, upper, lower):
+        dice = self.findDice(imageRightRect)
+        diceOrder = self.classifyDice(imageRightRect,dice)
 
         neededDice = dice[diceOrder.index(desiredDice-2)]
 
@@ -24,11 +24,11 @@ class DiceFinder:
 
         return feedback
 
-    def angle_cos(p0, p1, p2):
+    def angle_cos(self, p0, p1, p2):
         d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
         return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
 
-    def findDice(img):
+    def findDice(self,img):
         img = cv.GaussianBlur(img, (5, 5), 0)
         
         squares = []
@@ -37,23 +37,23 @@ class DiceFinder:
         bin, contours, _hierarchy = cv.findContours(bin, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
         
         for cnt in contours:
-                    cnt_len = cv.arcLength(cnt, True)
-                    cnt = cv.approxPolyDP(cnt, 0.02*cnt_len, True)
+            cnt_len = cv.arcLength(cnt, True)
+            cnt = cv.approxPolyDP(cnt, 0.02*cnt_len, True)
+            
+            if len(cnt) == 4 and cv.contourArea(cnt) > 1000 and cv.isContourConvex(cnt):
+                cnt = cnt.reshape(-1, 2)
+                max_cos = np.max([self.angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4]) for i in range(4)])
+                
+                if max_cos < 0.1:
+                    rect = cv.minAreaRect(cnt)
                     
-                    if len(cnt) == 4 and cv.contourArea(cnt) > 1000 and cv.isContourConvex(cnt):
-                        cnt = cnt.reshape(-1, 2)
-                        max_cos = np.max([angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4] ) for i in range(4)])
-                        
-                        if max_cos < 0.1:
-                            rect = cv.minAreaRect(cnt)
-                            
-                            if rect[1][0] < img.shape[0] * 0.9:
-                                if rect[1][1] < img.shape[1] * 0.9:
-                                    #coordinates = (int(rect[0][0]-rect[1][0]/2),int(rect[0][0]+rect[1][0]/2),int(rect[0][1]-rect[1][1]/2), int(rect[0][1]+rect[1][1]/2))
-                                    squares.append(rect)
+                    if rect[1][0] < img.shape[0] * 0.9:
+                        if rect[1][1] < img.shape[1] * 0.9:
+                            #coordinates = (int(rect[0][0]-rect[1][0]/2),int(rect[0][0]+rect[1][0]/2),int(rect[0][1]-rect[1][1]/2), int(rect[0][1]+rect[1][1]/2))
+                            squares.append(rect)
         return squares
 
-    def classifyDice(img,dice):
+    def classifyDice(self,img,dice):
         diceOrder = []
         
         for s in dice:

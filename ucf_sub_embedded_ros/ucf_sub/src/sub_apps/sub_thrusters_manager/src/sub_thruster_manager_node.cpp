@@ -2,6 +2,7 @@
 //#include "sub_thruster_library/seabotix_thruster.h"
 #include "generic_thruster.h"
 #include "sub_trajectory/ThrusterCmd.h"
+#include "sub_trajectory/ThrusterStatus.h"
 #include <json/json.h>
 
 #include <ros/ros.h>
@@ -21,6 +22,7 @@ class ThrusterManager {
     ros::NodeHandle nh_;
     ros::Subscriber command_subscriber;
     ros::Publisher diagnostics_output;
+    ros:Subscriber status_output;
     self_test::TestRunner self_test_;
     std::string configPath;
 
@@ -43,6 +45,7 @@ public:
         command_subscriber = nh_.subscribe("/thrusters/cmd_vel", 1000, &ThrusterManager::thrusterCb, this);
 
         diagnostics_output = nh_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1000);
+        status_output = nh_.advertise<ThrusterStatus>("/thrusterStatus", 1000)
 
         self_test_.add("Test connections", this, &ThrusterManager::testThrusterConnections);
 
@@ -115,6 +118,7 @@ public:
     {
         ros::Rate rate(updateRate);
         int loopCount;
+        ThrusterStatus thrusterStatusMsg = ThrusterStatus();
         while(ros::ok()) {
             diagnostic_msgs::DiagnosticArray diag;
             ROS_DEBUG("Updating thrusters");
@@ -158,24 +162,30 @@ public:
                     diagnostic_msgs::DiagnosticStatus status;
                     status.name = "Thruster_"+std::to_string(iter.first);
                     status.hardware_id = "Thruster_"+std::to_string(iter.first);
-
+                    thrusterStatusMsg.thrusterChannel = iter.first;
                     try {
                         iter.second->updateStatus();
                         iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
+                        thrusterStatusMsg.thrusterOk = true;
                     } catch(I2CException e) {
                         //Publish an error message for the diagnostic system to do something about
                         status.level = status.ERROR;
+                        thrusterStatusMsg.thrusterOk = false;
                     } catch (std::out_of_range e) {
                         ROS_ERROR("Thrusters command has not enough values");
+                        thrusterStatusMsg.thrusterOk = false;
                     }
 
                     if (thrusterOk(iter.second) && status.level != status.ERROR)
                         status.level = status.OK;
-                    else
+                    else {
                         status.level = status.ERROR;
-
+                        thrusterStatusMsg.thrusterOk = false;
+                    }
                     PushDiagData(status, iter.second, std::to_string(iter.first));
                     diag.status.push_back(status);
+                    thrusterStatusMsg.header.stamp = ros::Time::now();
+                    status_output.publish(thrusterStatusMsg);
                 }
             }
 

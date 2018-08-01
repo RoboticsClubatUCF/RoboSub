@@ -9,6 +9,7 @@ import os.path
 import numpy as np
 
 from sub_vision.msg import TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult
+from sub_vision.cfg import ThresholdsConfig
 
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
@@ -19,7 +20,8 @@ from dynamic_reconfigure.server import Server
 from polefinder import PoleFinder
 from gatefinder import GateFinder
 from dicefinder import DiceFinder
-import navbarfinder, bouyfinder, vision_utils
+from pathfinder import PathFinder
+import vision_utils
 
 class VisionServer:
     def __init__(self):
@@ -28,26 +30,34 @@ class VisionServer:
 
         self.lower = None
         self.upper = None
+        self.targetType = None
 
         self.srv = Server(ThresholdsConfig, self.updateThresholds)
+
+        self.thresholds = {int(k):v for k,v in rospy.get_param("/vision_thresholds").items()}
 
         self.bridge = CvBridge()
 
         self.leftImage = np.zeros((1,1,3), np.uint8)
         self.leftModel = image_geometry.PinholeCameraModel()
+        self.newLeft = False
 
         self.rightImage = np.zeros((1,1,3), np.uint8)
         self.rightModel = image_geometry.PinholeCameraModel()
+        self.newRight = False
 
         self.downImage = np.zeros((1,1,3), np.uint8)
         self.downModel = image_geometry.PinholeCameraModel()
+        self.newDown = False
 
         self.disparityImage = np.zeros((1,1,3), np.uint8)
         self.stereoModel = image_geometry.StereoCameraModel()
+        self.newDisparity = False
 
         self.poleFinder = PoleFinder()
-        self.gatefinder = GateFinder()
-        self.dicefinder = DiceFinder()
+        self.gateFinder = GateFinder()
+        self.diceFinder = DiceFinder()
+        self.pathFinder = PathFinder()
         self.response = TrackObjectResult()
 
         self.downSub = rospy.Subscriber('/down_camera/image_color', Image, self.downwardsCallback)
@@ -69,21 +79,41 @@ class VisionServer:
         #self.thresholds = self.loadThresholds()
 
     def updateThresholds(self, config, level):
-        self.lower = np.array(config["lowH"], config["lowS"], config["lowL"],dtype=np.uint8)
-        self.upper = np.array(config["upH"], config["upS"], config["upL"],dtype=np.uint8)
+        self.lower = np.array([config["lowH"], config["lowS"], config["lowL"]],dtype=np.uint8)
+        self.upper = np.array([config["upH"], config["upS"], config["upL"]],dtype=np.uint8)
+
+        if self.targetType is not None:
+            self.thresholds[self.targetType] = [self.lower.tolist(), self.upper.tolist()]
+            rospy.set_param("/vision_thresholds/"+str(self.targetType), [self.lower.tolist(), self.upper.tolist()])
+
+        return config
+
+    def setThresholds(self, lower, upper):
+        self.lower = np.array(lower,dtype=np.uint8)
+        self.upper = np.array(upper,dtype=np.uint8)
+
+        self.srv.update_configuration({"lowH":lower[0], "lowS":lower[1], "lowV":lower[2], "upH":upper[0], "upS":upper[1], "upV":upper[2]})
 
     def execute(self, goal):
         self.targetType = goal.objectType
+        self.setThresholds(*self.thresholds[self.targetType])
         self.feedback = TrackObjectFeedback()
 
         self.running = True
         self.ok = True
 
-        r = rospy.Rate(30)
-        while self.running and not rospy.is_shutdown():
-            rightImageRect = np.zeros(self.rightImage.shape, self.rightImage.dtype)
-            leftImageRect = np.zeros(self.leftImage.shape, self.leftImage.dtype)
+        rightImageRect = np.zeros(self.rightImage.shape, self.rightImage.dtype)
+        leftImageRect = np.zeros(self.leftImage.shape, self.leftImage.dtype)
+        downImageRect = np.zeros(self.downImage.shape, self.downImage.dtype)
 
+        r = rospy.Rate(60)
+        while self.running and not rospy.is_shutdown():
+            if self.server.is_preempt_requested() or self.server.is_new_goal_available():
+                self.running = False
+                continue
+            
+            r.sleep()
+            
             if self.rightModel.width is not None and self.rightImage is not None:
                 self.rightModel.rectifyImage(self.rightImage, rightImageRect)
             else:
@@ -96,38 +126,43 @@ class VisionServer:
                 rospy.logwarn_throttle(1, "No left camera model")
                 continue #We need the left camera model for stuff
 
-            if self.server.is_preempt_requested() or self.server.is_new_goal_available():
-                    self.running = False
-                    continue
-
-            elif self.targetType == TrackObjectGoal.startGate:
-                self.feedback = self.gatefinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel)
-                if self.feedback.found:
-                    self.server.publish_feedback(self.feedback)
-                    self.feedback.found = False
-                    self.response.found=True
-                if not goal.servoing:
-                    self.running = False
+            if self.downModel.width is not None and self.downImage is not None:
+                self.downModel.rectifyImage(self.downImage, downImageRect)
+            else:
+                rospy.logwarn_throttle(1, "No down camera model")
+                continue #We need the down camera model for stuff
+            
+            self.feedback = TrackObjectFeedback()
+            if self.targetType == TrackObjectGoal.startGate:
+                if self.newRight:
+                    self.feedback = self.gateFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel, self.upper, self.lower)
+                    self.newRight = False
 
             elif self.targetType == TrackObjectGoal.pole:
-                self.feedback = self.poleFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel)
-                if self.feedback.found:
-                    self.server.publish_feedback(self.feedback)
-                    self.feedback.found = False
-                    self.response.found=True
-                if not goal.servoing:
-                    self.running = False
+                if self.newRight:
+                    self.feedback = self.poleFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel, self.upper, self.lower)
+                    self.newRight = False
 
             elif self.targetType == TrackObjectGoal.dice:
-                self.feedback = self.diceFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel,goal.diceNum)
-                if self.feedback.found:
-                    self.server.publish_feedback(self.feedback)
-                    self.feedback.found = False
-                    self.response.found=True
-                if not goal.servoing:
-                    self.running = False
+                if self.newRight:
+                    self.feedback = self.diceFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel, goal.diceNum, self.upper, self.lower)
+                    self.newRight = False
 
-            r.sleep()
+            elif self.targetType == TrackObjectGoal.path:
+                if self.newDown:
+                    self.feedback = self.pathFinder.process(downImageRect, self.downModel, self.upper, self.lower)
+                    self.newDown = False
+
+            else:
+                self.ok = False
+                break
+
+            if self.feedback.found:
+                self.server.publish_feedback(self.feedback)
+                self.feedback.found = False
+                self.response.found=True
+            if not goal.servoing:
+                self.running = False
 
         self.response.stoppedOk=self.ok
         self.server.set_succeeded(self.response)
@@ -137,29 +172,24 @@ class VisionServer:
     def downwardsCallback(self, msg):
         try:
             self.downImage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            self.newDown = True
         except CvBridgeError as e:
             print(e)
-
-        if self.downModel is None:
-            print("No camera model for downwards camera")
-            return
 
         #self.downModel.rectifyImage(self.downImage, self.downImage)
 
     def stereoCallback(self, msg):
         try:
             self.disparityImage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            self.newDisparity = True
         except CvBridgeError as e:
             print(e)
-
-        if self.stereoModel is None:
-            print("No camera model for stereo camera")
-            return
 
     def leftCallback(self, msg):
         try:
             self.leftImage = self.bridge.imgmsg_to_cv2(msg.image, "bgr8")
             self.leftModel.fromCameraInfo(msg.info)
+            self.newLeft = True
         except CvBridgeError as e:
             print(e)
 
@@ -167,6 +197,7 @@ class VisionServer:
         try:
             self.rightImage = self.bridge.imgmsg_to_cv2(msg.image, "bgr8")
             self.rightModel.fromCameraInfo(msg.info)
+            self.newRight = True
         except CvBridgeError as e:
             print(e)
 
