@@ -6,7 +6,7 @@ from rospy.numpy_msg import numpy_msg
 import particle
 import vision_manager
 from sub_vision.msg import VisualServoAction, VisualServoGoal, VisualServoFeedback, VisualServoResult, TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult
-from geometry_msgs.msg import Wrench
+from geometry_msgs.msg import WrenchStamped
 import actionlib
 from sensor_msgs.msg import CameraInfo, Imu
 from std_msgs.msg import Float32
@@ -29,7 +29,8 @@ class visual_servo:
 
         self.reconfigureServer = Server(ServoingConfig, self.reconfigureCallback)
 
-        self.message = Wrench()
+        self.message = WrenchStamped()
+        self.message.header.frame_id = 'base_link'
 
         self.response = VisualServoResult()
 
@@ -53,9 +54,7 @@ class visual_servo:
 
         self.camera_info_pub = rospy.Subscriber("/stereo/right/camera_info", CameraInfo, self.initInfo)
         self.vision_feedback = rospy.Subscriber('/track_object/feedback', TrackObjectFeedback, self.servoing)
-        self.thruster_pub = rospy.Publisher('/autonomyWrench', Wrench, queue_size=1)
-        self.thruster_sub = rospy.Subscriber("/autonomyWrench", Wrench, self.republishWrench)
-        self.desired_wrench = rospy.Publisher("/desiredThrustWrench", Wrench, queue_size=1)
+        self.thruster_pub = rospy.Publisher('/autonomyWrench', WrenchStamped, queue_size=1)
 
         self.imuSubscriber = rospy.Subscriber("/imu/data", Imu, self.initIMU)
         self.depthSubscriber = rospy.Subscriber("/Depth", Float32, self.initDepth)
@@ -86,9 +85,6 @@ class visual_servo:
         self.orientationX = msg.orientation.x
         self.orientationY = msg.orientation.y
         self.orientationZ = msg.orientation.z
-
-    def republishWrench(self, msg):
-        self.desired_wrench.publish(msg)
 
     def initDepth(self, msg):
         self.Depth = msg
@@ -141,12 +137,13 @@ class visual_servo:
                     int_matrix = self.interaction_matrix([1,5], x,y)
                     int_matrix = int_matrix[:,[1,5]]
                     forces = np.matmul(np.linalg.pinv(int_matrix), coordinates + self.translationUnits)
-                    self.message.force.x = self.speed
-                    self.message.force.y = forces[0]
-                    self.message.force.z = self.Depth
-                    self.message.torque.x = self.orientationX
-                    self.message.torque.y = self.orientationY
-                    self.message.torque.z = forces[1]
+                    self.message.wrench.force.x = self.speed
+                    self.message.wrench.force.y = forces[0]
+                    self.message.wrench.force.z = self.Depth
+                    self.message.wrench.torque.x = self.orientationX
+                    self.message.wrench.torque.y = self.orientationY
+                    self.message.wrench.torque.z = forces[1]
+                    self.message.header.stamp = rospy.Time.now()
                     self.thruster_pub.publish(self.message)
 
             else:
@@ -190,12 +187,13 @@ class visual_servo:
                     newCommand = np.matmul(np.linalg.pinv(int_matrix), newPos)
 
                     #Create Wrench
-                    self.message.force.x = newCommand[1]
-                    self.message.force.y = newCommand[0]
-                    self.message.force.z = newCommand[2]
-                    self.message.torque.x = newCommand[3]
-                    self.message.torque.y = newCommand[4]
-                    self.message.torque.z = newCommand[5]
+                    self.message.wrench.force.x = newCommand[1]
+                    self.message.wrench.force.y = newCommand[0]
+                    self.message.wrench.force.z = newCommand[2]
+                    self.message.wrench.torque.x = newCommand[3]
+                    self.message.wrench.torque.y = newCommand[4]
+                    self.message.wrench.torque.z = newCommand[5]
+                    self.message.header.stamp = rospy.Time.now()
                     self.thruster_pub.publish(self.message)
 
             else:

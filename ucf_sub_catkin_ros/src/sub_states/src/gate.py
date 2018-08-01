@@ -86,12 +86,6 @@ class through(smach.State):
 		result = self.client.get_result()
 
 		if not result.found:
-			message.force.x = 1
-			message.force.y = 0
-			message.force.z = 0
-			message.torque.x = 0
-			message.torque.y = 0
-			message.torque.z = 0
 			return 'failure'
 
 		else:

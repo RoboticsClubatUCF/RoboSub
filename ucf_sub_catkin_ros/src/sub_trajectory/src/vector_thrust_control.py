@@ -2,7 +2,7 @@
 import rospy
 
 from sub_trajectory.msg import ThrusterStatus, ThrusterCmd
-from geometry_msgs.msg import Wrench
+from geometry_msgs.msg import WrenchStamped
 
 import numpy as np
 import math, time
@@ -135,7 +135,7 @@ class VectorController:
                 tol=0.0001)
         
         message = ThrusterCmd()
-        actualMsg = Wrench()
+        actualMsg = WrenchStamped()
         actual = None
         if optimize:
             #rospy.loginfo("optimize output wrench: " + str(self.thrustToWrench.dot(minimized.x)))
@@ -145,12 +145,13 @@ class VectorController:
             #rospy.loginfo("pinv output wrench: " + str(self.thrustToWrench.dot(pinvOutput)))
             message.cmd = pinvOutput.tolist()
             actual = self.thrustToWrench.dot(pinvOutput)
-        actualMsg.force.x = actual[0]
-        actualMsg.force.y = actual[1]
-        actualMsg.force.z = actual[2]
-        actualMsg.torque.x = actual[3]
-        actualMsg.torque.y = actual[4]
-        actualMsg.torque.z = actual[5]
+        actualMsg.wrench.force.x = actual[0]
+        actualMsg.wrench.force.y = actual[1]
+        actualMsg.wrench.force.z = actual[2]
+        actualMsg.wrench.torque.x = actual[3]
+        actualMsg.wrench.torque.y = actual[4]
+        actualMsg.wrench.torque.z = actual[5]
+        actualMsg.header.stamp = rospy.Time.now()
         
         self.actualWrenchPub.publish(actualMsg)
         self.thrustPublisher.publish(message)
@@ -172,11 +173,11 @@ class VectorController:
         
         
     def run(self): #Start spinning ros stuff.
-        rospy.Subscriber("desiredThrustWrench", Wrench, self.commandCb)
+        rospy.Subscriber("desiredThrustWrench", WrenchStamped, self.commandCb)
         rospy.Subscriber("thrusterStatus", ThrusterStatus, self.thrusterStatusCb)
         
         self.thrustPublisher = rospy.Publisher("/thrusters/cmd_vel", ThrusterCmd, queue_size=10)
-        self.actualWrenchPub = rospy.Publisher("actualThrustWrench", Wrench, queue_size=10)
+        self.actualWrenchPub = rospy.Publisher("actualThrustWrench", WrenchStamped, queue_size=10)
 
         rate = rospy.Rate(5)
         while not rospy.is_shutdown():
