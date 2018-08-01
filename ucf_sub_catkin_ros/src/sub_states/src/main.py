@@ -16,14 +16,14 @@ class StartState(smach.State):
 		smach.State.__init__(self, outcomes=['GO'])
 		self.waiting = True
 		rospy.Subscriber("/start", Bool, self.go)
-	
+
 	def go(self, msg):
 		self.waiting = False
-	
+
 	def execute(self, userdata):
 		while self.waiting and not self.preempt_requested():
 			time.sleep(0.1)
-		
+
 		return 'GO'
 
 class StopState(smach.State):
@@ -51,24 +51,42 @@ class StopState(smach.State):
 class SafetyState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ABORT', 'RECOVERED', 'PREEMPTED'])
-		self.leak = False
+		self.critError = False
+		self.estop = False
 		rospy.Subscriber("/leak", Bool, self.leakCb)
+		rospy.Subscriber("/diagnostics", DiagnosticArray, self.depthStatus)
 
 	def leakCb(self, msg):
-		self.leak = msg.data
-	
+		if msg.data:
+			self.critError = msg.data
+
+	def depthStatus(self, msg):
+		thrusterErrors = 0
+		for status in msg:
+			if status.name == 'DepthDisconnect':
+				if status.message == 'true':
+					self.critError == 'true'
+			elif 'Thruster_' in status.name and not status.thrusterOk:
+				thusterErrors++
+		if thrusterErrors > 7:
+			self.estop = True
+		elif thrusterErrors > 0:
+			self.critError = True
+
 	def execute(self, userdata):
-		while not self.leak and not self.preempt_requested():
+		while not self.critError and not self.preempt_requested():
 			time.sleep(0.1)
-		
+
 		if self.preempt_requested():
 			return 'PREEMPTED'
+		elif self.estop:
+			return 'ESTOP'
 		else:
 			return 'ABORT'
 
 def safetyWrap(task):
 	def safety_outcome(outcome_map):
-		if outcome_map['SAFETY'] in ['ABORT', 'RECOVERED']:
+		if outcome_map['SAFETY'] in ['ESTOP', 'ABORT', 'RECOVERED']:
 			return outcome_map['SAFETY']
 		else:
 			return outcome_map["TASK"]
@@ -86,7 +104,7 @@ def safetyWrap(task):
 		smach.Concurrence.add("TASK", task)
 
 	return sm_wrapper
-	
+
 
 def main():
 	rospy.init_node('hippo_sm')
