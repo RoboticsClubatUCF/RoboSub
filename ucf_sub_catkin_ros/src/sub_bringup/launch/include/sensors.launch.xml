@@ -9,4 +9,5 @@
   <include file="$(find sub_sensors)/launch/depth.launch.xml" />
   <!-- Internal Environment -->
   <include file="$(find sub_sensors)/launch/internal.launch.xml" />
+  <include file="$(find sub_sensors)/launch/batteries.launch.xml"/>
 </launch>
