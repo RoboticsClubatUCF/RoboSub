@@ -3,6 +3,8 @@
   <include file="$(find sub_trajectory)/launch/sub_trajectory.launch" />
   <include file="$(find sub_states)/launch/sub_states.launch" />
   <include file="$(find sub_thrusters_manager)/launch/sub_thruster_manager.launch"/>
+  <node name="cmd_multiplexer" pkg="sub_cmd_multiplexer" type="cmd_multiplexer.py"/>
+  <node name="stability" pkg="sub_trajectory" type="active_stability.py"/>
   <!-- Node fusing continuous measurements such as IMU and encoder data.
          NOTE: If we fuse GPS data, we likely need to use two nodes, one with GPS one without. -->
 

@@ -1,8 +1,8 @@
 <launch>
    <!-- Determine this using rosrun pointgrey_camera_driver list_cameras.
        If not specified, defaults to first camera found. -->
-  <arg name="left_camera_serial" default="15435729" />
-  <arg name="right_camera_serial" default="15435605" />
+  <arg name="left_camera_serial" default="15435605" />
+  <arg name="right_camera_serial" default="15435729" />
   <arg name="calibrated" default="1" />
 
   <group ns="stereo/left">
@@ -23,9 +23,9 @@
              value="file://$(env HOME)/.ros/camera_info/$(arg left_camera_serial).yaml" />
     </node>
 
-    <node pkg="nodelet" type="nodelet" name="image_proc_debayer"
+    <!--node pkg="nodelet" type="nodelet" name="image_proc_debayer"
           args="load image_proc/debayer camera_nodelet_manager">
-    </node>
+    </node-->
   </group>
   <group ns="stereo/right">
     <node pkg="nodelet" type="nodelet" name="camera_nodelet_manager" args="manager" />
@@ -45,8 +45,16 @@
              value="file://$(env HOME)/.ros/camera_info/$(arg right_camera_serial).yaml" />
     </node>
 
-    <node pkg="nodelet" type="nodelet" name="image_proc_debayer"
+    <!--node pkg="nodelet" type="nodelet" name="image_proc_debayer"
           args="load image_proc/debayer camera_nodelet_manager">
-    </node>
+    </node-->
   </group>
+  <!--node pkg="nodelet" type="nodelet" name="stereo_proc_manager" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="CUDA_stereo"
+   args="load tegra_stereo/tegra_stereo_proc stereo_proc_manager">
+    <remap from="/stereo/cam0/image_raw" to="/stereo/left/image_raw"/>
+    <remap from="/stereo/cam1/image_raw" to="/stereo/right/image_raw"/>
+    <remap from="/stereo/cam0/camera_info" to="/stereo/left/camera_info"/>
+    <remap from="/stereo/cam1/camera_info" to="/stereo/right/camera_info"/>
+  </node-->
 </launch>
