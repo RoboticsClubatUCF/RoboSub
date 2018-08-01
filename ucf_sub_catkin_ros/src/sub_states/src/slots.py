@@ -35,6 +35,13 @@ class backup(smach.State):
 	def execute(self, userdata):
 		pass
 
+class findhole(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
+
+	def execute(self, userdata):
+		pass
+
 class ute(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure', 'done'])
@@ -65,6 +72,11 @@ def makeTask():
 						transitions={'preempted':'DONE',
 							'success': 'FINDHOLE',
 							'failure':'BACKUP'})
+
+		smach.StateMachine.add('FINDHOLE', findhole(),
+						transitions={'preempted':'DONE',
+							'success': 'UTE',
+							'failure': 'FINDHOLE'})
 
 		smach.StateMachine.add('UTE', ute(),
 						transitions={'preempted':'DONE',
