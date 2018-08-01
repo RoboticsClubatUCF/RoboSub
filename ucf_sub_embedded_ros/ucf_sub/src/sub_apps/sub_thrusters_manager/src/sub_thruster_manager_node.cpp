@@ -2,6 +2,7 @@
 //#include "sub_thruster_library/seabotix_thruster.h"
 #include "generic_thruster.h"
 #include "sub_trajectory/ThrusterCmd.h"
+#include "sub_trajectory/ThrusterStatus.h"
 #include <json/json.h>
 
 #include <ros/ros.h>
@@ -21,8 +22,9 @@ class ThrusterManager {
     ros::NodeHandle nh_;
     ros::Subscriber command_subscriber;
     ros::Publisher diagnostics_output;
+    ros:Subscriber status_output;
     self_test::TestRunner self_test_;
-	std::string configPath;
+    std::string configPath;
 
     sub_trajectory::ThrusterCmd savedMsg;
 
@@ -43,13 +45,14 @@ public:
         command_subscriber = nh_.subscribe("/thrusters/cmd_vel", 1000, &ThrusterManager::thrusterCb, this);
 
         diagnostics_output = nh_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1000);
+        status_output = nh_.advertise<ThrusterStatus>("/thrusterStatus", 1000)
 
         self_test_.add("Test connections", this, &ThrusterManager::testThrusterConnections);
 
         initServer = nh_.advertiseService("initThrusters", &ThrusterManager::initService, this);
 
-    	nh_.param("/updateRate", updateRate, 30);
-		nh_.param("/thrusterConfigPath", configPath, std::string("config.json");
+        nh_.param("/updateRate", updateRate, 30);
+        nh_.param("/thrusterConfigPath", configPath, std::string("config.json"));
     }
 
     Json::Value loadConfig(std::string filename)
@@ -101,6 +104,7 @@ public:
                 diagnostic_msgs::DiagnosticStatus status;
                 status.name = "Thruster_"+thrustersJson[i]["Address"].asString();
                 status.hardware_id = "Thruster_"+thrustersJson[i]["Address"].asString();
+                status.message = std::string("Couldn't connect");
                 status.level = status.ERROR;
                 diag.status.push_back(status);
             }
@@ -114,6 +118,7 @@ public:
     {
         ros::Rate rate(updateRate);
         int loopCount;
+        ThrusterStatus thrusterStatusMsg = ThrusterStatus();
         while(ros::ok()) {
             diagnostic_msgs::DiagnosticArray diag;
             ROS_DEBUG("Updating thrusters");
@@ -123,7 +128,25 @@ public:
                 loopCount = 0;
             }
 
-            if(thrusterMap.size() != savedMsg.cmd.size())
+            if(thrusterMap.size() == 0)
+            {
+                diagnostic_msgs::DiagnosticStatus status;
+                status.name = "Thrusters";
+                status.hardware_id = "Thrusters";
+                status.level = status.WARN;
+                diag.status.push_back(status);
+                ROS_WARN("No thrusters initialized");
+            }
+            else if(savedMsg.cmd.size() == 0)
+            {
+                diagnostic_msgs::DiagnosticStatus status;
+                status.name = "Thrusters";
+                status.hardware_id = "Thrusters";
+                status.level = status.WARN;
+                diag.status.push_back(status);
+                ROS_WARN("No comand message");
+            }
+            else if(thrusterMap.size() != savedMsg.cmd.size())
             {
                 diagnostic_msgs::DiagnosticStatus status;
                 status.name = "Thrusters";
@@ -139,24 +162,30 @@ public:
                     diagnostic_msgs::DiagnosticStatus status;
                     status.name = "Thruster_"+std::to_string(iter.first);
                     status.hardware_id = "Thruster_"+std::to_string(iter.first);
-
+                    thrusterStatusMsg.thrusterChannel = iter.first;
                     try {
                         iter.second->updateStatus();
                         iter.second->setVelocityRatio(savedMsg.cmd.at(iter.first));
+                        thrusterStatusMsg.thrusterOk = true;
                     } catch(I2CException e) {
                         //Publish an error message for the diagnostic system to do something about
                         status.level = status.ERROR;
+                        thrusterStatusMsg.thrusterOk = false;
                     } catch (std::out_of_range e) {
                         ROS_ERROR("Thrusters command has not enough values");
+                        thrusterStatusMsg.thrusterOk = false;
                     }
 
                     if (thrusterOk(iter.second) && status.level != status.ERROR)
                         status.level = status.OK;
-                    else
+                    else {
                         status.level = status.ERROR;
-
+                        thrusterStatusMsg.thrusterOk = false;
+                    }
                     PushDiagData(status, iter.second, std::to_string(iter.first));
                     diag.status.push_back(status);
+                    thrusterStatusMsg.header.stamp = ros::Time::now();
+                    status_output.publish(thrusterStatusMsg);
                 }
             }
 
@@ -199,7 +228,7 @@ public:
 
     void thrusterCb(const sub_trajectory::ThrusterCmd &msg)
     {
-		savedMsg = msg;
+        savedMsg = msg;
     }
 
     //Self test function
@@ -209,7 +238,7 @@ public:
         std::stringstream failedThrusters;
         Json::Value& thrustersJson = loadConfig(configPath)["COMPUTE"];
         for(int i = 0; i < thrustersJson.size(); i++)
-		{
+        {
             int thrusterID = thrustersJson[i]["ID"].asInt();
             int thrusterType = thrustersJson[i]["Type"].asInt(); //TODO: support for multiple thruster types
             int thrusterAddress = thrustersJson[i]["Address"].asInt();

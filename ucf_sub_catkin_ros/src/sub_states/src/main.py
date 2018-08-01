@@ -1,135 +1,126 @@
-
 #!/usr/bin/env python
 
 import rospy
-import smach
-import smach_ros
-
-import actionlib
-import actionlib_msgs.msg
-
-import vision_manager
-import trajectory_planner
-
-import vision_manager.msg
-import trajectory_planner.msg
-
-import monitor
-
+import time
+from std_msgs.msg import Bool
+from sub_trajectory.msg import StabilityMode
+import smach, smach_ros
 
 import gate
+import path
+import dice
+import slots
 
-class SubStates:
+class StartState(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['GO'])
+		self.waiting = True
+		rospy.Subscriber("/start", Bool, self.go)
+	
+	def go(self, msg):
+		self.waiting = False
+	
+	def execute(self, userdata):
+		while self.waiting and not self.preempt_requested():
+			time.sleep(0.1)
+		
+		return 'GO'
 
-        def __init__(self):
-                # Initialize node for the State Machine
-                rospy.loginfo("State Machine has started.")
+class StopState(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['DONE', 'RESTART'],
+							input_keys=['depth'])
+		self.stabilityPub = rospy.Publisher("/thrusters/depthMode", StabilityMode, queue_size=1)
+		self.stabilityMsg = StabilityMode()
+		self.waiting = True
+		rospy.Subscriber("/start", Bool, self.button)
 
-                self.movement_client = actionlib.SimpleActionClient('movement_server')
-                rospy.loginfo("Created SimpleActionClient.")
+	def button(self, msg):
+		self.waiting=False
 
-                self.vision_client = actionlib.SimpleActionClient('track_object')
-                rospy.loginfo("Created SimpleActionClient.")
+	def execute(self, userdata):
+		self.stabilityMsg.target.z=userdata.depth
+		self.stabilityMsg.mode = StabilityMode.position
+		self.stabilityPub.publish(self.stabilityMsg)
 
-                # Declare the top level state
-                self.tasks = smach.StateMachine(outcomes=['success'])
+		while self.waiting and not self.preempt_requested():
+			time.sleep(0.1)
 
-                # Open top level state machine
-                with tasks:
+		return 'RESTART'
 
-                        # Gate task
-                        smach.StateMachine.add("GATE", gate(),
-                                               transitions={'preempted':'preempted',
-                                                            'success':'PATH',
-                                                            'failure':'GATE'})
+class SafetyState(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['ABORT', 'RECOVERED', 'PREEMPTED'])
+		self.leak = False
+		rospy.Subscriber("/leak", Bool, self.leakCb)
 
-                        # Path to bouy task
-                        smach.StateMachine.add("PATHTOBOUY", pathToBouy(),
-                                               transitions={'preempted':'preempted',
-                                                            'success':'BOUY',
-                                                            'failure':'PATHTOBOUY'})
+	def leakCb(self, msg):
+		self.leak = msg.data
+	
+	def execute(self, userdata):
+		while not self.leak and not self.preempt_requested():
+			time.sleep(0.1)
+		
+		if self.preempt_requested():
+			return 'PREEMPTED'
+		else:
+			return 'ABORT'
 
-                        # Bouy task
-                        smach.StateMachine.add("BUOY", bouy(),
-                                               transitions={'preempted':'preempted',
-                                                            'success':'PATHTOBUYCHIP',
-                                                            'failure':'BUOY'})
+def safetyWrap(task):
+	def safety_outcome(outcome_map):
+		if outcome_map['SAFETY'] in ['ABORT', 'RECOVERED']:
+			return outcome_map['SAFETY']
+		else:
+			return outcome_map["TASK"]
 
-                        # Path to buy chips task
-                        smach.StateMachine.add("PATHTOBUYCHIP", pathToByChip(),
-                                               transitions={'preempted':'preempted',
-                                                            'success':'CHIP',
-                                                            'failure':'PATHTOBUYCHIP'})
+	def safety_term(outcome_map):
+		return True
 
-                        # Chips task
-                        smach.StateMachine.add("CHIP", chip(),
-                                               transitions={'preempted':'preempted',
-                                                            'success':'PATHTOSLOTS',
-                                                            'failure':'CHIP'})
+	sm_wrapper = smach.Concurrence(list(task.get_registered_outcomes()) + ['ABORT', 'RECOVERED'],
+									default_outcome='ABORT',
+									outcome_cb=safety_outcome,
+									child_termination_cb=safety_term)
 
-			# Path to Slot machine task
-			smach.StateMachine.add("PATHTOSLOTS", pathToSlots(),
-					       transitions={'preempted':'preempted',
-							    'success':'SLOTS',
-							    'failure':'PATHTOSLOTS'})
+	with sm_wrapper:
+		smach.Concurrence.add("SAFETY", SafetyState())
+		smach.Concurrence.add("TASK", task)
 
-			# Slot machine task
-			smach.StateMachine.add("SLOTS", slots(),
-					       transitions={'preempted':'preempted',
-							    'success':'PINGERTOROULETTE',
-							    'failure':'SLOTS'})
+	return sm_wrapper
+	
 
-			# Path to Roulette task
-			smach.StateMachine.add("PINGERTOROULETTE", pingerToRoulette(),
-					       transitions={'preempted':'preempted',
-							    'success':'ROULETTE',
-							    'failure':'PINGERTOROULETTE'})
-			# Roulette Task
-			smach.StateMachine.add("ROULETTE", roulette(),
-					       transitions={'preempted':'preempted',
-							    'success':'PINGERTOCASHOUT',
-							    'failure':'ROULETTE'})
-			# Pinger to Cash out
-			smach.StateMachine.add("PINGERTOCASHOUT", pingerToCashOut(),
-					       transitions={'preempted':'preempted',
-							    'success':'CASHOUT',
-							    'failure':'PINGERTOCASHOUT'})
+def main():
+	rospy.init_node('hippo_sm')
+	rospy.loginfo("State Machine has started.")
 
-                        # Cashout task
-                        smach.StateMachine.add("CASHOUT", cashout(),
-                                               transitions={'preempted':'preempted',
-                                                            'success':'success',
-                                                            'failure':'CASHOUT'})
+	mission_sm = smach.StateMachine(outcomes=['DONE'])
+	mission_sm.userdata.abort_depth = -10
+	mission_sm.userdata.stop_depth = 1
 
-                        # Add a concurrent MonitorState (or better option) in order to watch for E-stop (physical and logical) battery level, etc.
-                        # Will need to add a preemption transition to all states, and should auto start at the preempted state if the reason for
-                        # the preemption changes (i.e. E-stop is turned off). Need to figure out how and when State Machine is starting during competition.
+	with mission_sm:
 
-                        # Gate task state transitions
-                        gate = smach.StateMachine(outcomes=['preempted', 'succeess', 'failure'])
+		smach.StateMachine.add('START', safetyWrap(StartState()), transitions={'GO':'GATE', 'ABORT':'ABORT', 'RECOVERED': 'START'})
 
-                        with gate:
+		task_gate = safetyWrap(gate.makeTask())
+		task_path1 = safetyWrap(path.makeTask())
+		task_dice = safetyWrap(dice.makeTask())
+		task_path2 = safetyWrap(path.makeTask())
+		task_slots = safetyWrap(slots.makeTask())
 
-                                smach.StateMachine.add('LOCATE', locate(),
-                                                       transitions={'preempted':'preempted',
-                                                                    'success': 'ALIGN',
-                                                                    'failure': 'locate'})
+		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'PATH', 'ABORT':'ABORT', 'RECOVERED':'GATE'})
+		smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1'})
+		smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE'})
+		smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2'})
+		smach.StateMachine.add('SLOTS', task_slots, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'SLOTS'})
 
-                                smach.StateMachine.add('ALIGN', align(),
-                                                       transitions={'preempted':'preempted',
-                                                                    'success': 'THROUGH',
-                                                                    'failure': 'locate'})
+		smach.StateMachine.add('STOP', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE'}, remapping={'depth':'stop_depth'})
+		smach.StateMachine.add('ABORT', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE'}, remapping={'depth':'abort_depth'})
 
-                                smach.StateMachine.add('THROUGH', through(),
-                                                       transitions={'preempted':'preempted',
-                                                                    'success': 'GATETOBOUY',
-                                                                    'failure': 'locate'})
-
-                        return gate
-
-                outcome = tasks.execute()
+	sis = smach_ros.IntrospectionServer("sm_server", mission_sm, "/MISSION")
+	sis.start()
+	result = mission_sm.execute()
+	rospy.loginfo(result)
+	rospy.spin()
+	sis.stop()
 
 if __name__ == '__main__':
-        rospy.init_node('ness_sm')
-        sm = SubStates()
-        rospy.spin()
+	main()

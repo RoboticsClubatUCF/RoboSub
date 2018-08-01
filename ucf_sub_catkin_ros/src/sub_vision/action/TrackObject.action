@@ -13,6 +13,7 @@ int32 dice3=5
 int32 dice4=6
 int32 dice5=7
 int32 dice6=8
+int32 path=9
 ---
 #result
 bool stoppedOk
