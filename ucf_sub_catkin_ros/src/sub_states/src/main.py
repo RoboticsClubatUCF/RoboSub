@@ -68,7 +68,7 @@ class SafetyState(smach.State):
 				if status.message == 'true':
 					self.critError = True
 			elif 'Thruster_' in status.name and status.level != 0:
-				thusterErrors += 1
+				thrusterErrors += 1
 		if thrusterErrors > 7:
 			self.estop = True
 		elif thrusterErrors > 1:
