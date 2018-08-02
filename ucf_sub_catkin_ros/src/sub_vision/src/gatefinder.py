@@ -57,14 +57,17 @@ class GateFinder:
 
     def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, upper, lower):
         assert(imageRightRect is not None)
-        imageHLS = cv2.cvtColor(imageRightRect, cv2.COLOR_BGR2HLS)
+	feedback = TrackObjectFeedback()
+	feedback.found = False
+	imageHLS = cv2.cvtColor(imageRightRect, cv2.COLOR_BGR2HLS)
         mask=cv2.inRange(imageHLS, np.array(lower,dtype='uint8'),np.array(upper,dtype='uint8')) #HLS thresholds
         #mask=cv2.inRange(imageHSV, np.array([20,30,80],dtype='uint8'),np.array([40,52,120],dtype='uint8'))
         cnts = cv2.findContours(mask.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)    
         contours = cnts[1]
 
         if len(contours) == 0:
-            return None
+		print("here")
+        	return feedback
 
         rects = []
         for contour in contours: #adapted from https://github.com/opencv/opencv/blob/master/samples/python/squares.py
@@ -75,8 +78,6 @@ class GateFinder:
                 max_cos = np.max([angle_cos( contour[i], contour[(i+1) % 4], contour[(i+2) % 4] ) for i in xrange(4)])
                 if max_cos < 0.1:
                     rects.append(contour)
-
-        feedback = TrackObjectFeedback()
 
         if len(rects) > 1:
             rects = greatestNAreaContours(rects, 2)
@@ -107,6 +108,6 @@ class GateFinder:
 
 
         else:
-            return None
+            return feedback
 
 
