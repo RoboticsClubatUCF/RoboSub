@@ -41,7 +41,7 @@ thrusters:
     thruster_type: t200
   "5":
     data_frame: base_link
-    direction: [0.0, 0.0, -1.0]
+    direction: [0.0, 0.0, 1.0]
     max_output: 6.6
     position: [0.1, -0.1, 0.0]
     thruster_frame: FLV_Thruster
