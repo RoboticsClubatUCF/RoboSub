@@ -82,7 +82,7 @@ class VectorController:
                 raise NotImplementedError
                 
     def commandCb(self, msg): #accept a wrench msg, then apply it to the thrusters
-        desiredWrench = rosToWrench(msg)
+        desiredWrench = rosToWrench(msg.wrench)
         
         #rospy.loginfo("DesiredWrench: " + str(desiredWrench))
         pinvOutput = self.wrenchToThrust.dot(desiredWrench)
