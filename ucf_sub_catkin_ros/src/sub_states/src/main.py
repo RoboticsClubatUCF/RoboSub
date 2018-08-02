@@ -5,6 +5,7 @@ import time
 from std_msgs.msg import Bool
 from sub_trajectory.msg import StabilityMode
 import smach, smach_ros
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 
 import gate
 import path
@@ -58,23 +59,23 @@ class SafetyState(smach.State):
 
 	def leakCb(self, msg):
 		if msg.data:
-			self.critError = msg.data
+			self.critError = True
 
 	def depthStatus(self, msg):
 		thrusterErrors = 0
 		for status in msg:
 			if status.name == 'DepthDisconnect':
 				if status.message == 'true':
-					self.critError == 'true'
+					self.critError = True
 			elif 'Thruster_' in status.name and not status.thrusterOk:
-				thusterErrors++
+				thusterErrors += 1
 		if thrusterErrors > 7:
 			self.estop = True
-		elif thrusterErrors > 0:
+		elif thrusterErrors > 1:
 			self.critError = True
 
 	def execute(self, userdata):
-		while not self.critError and not self.preempt_requested():
+		while not self.critError and not self.estop and not self.preempt_requested():
 			time.sleep(0.1)
 
 		if self.preempt_requested():
