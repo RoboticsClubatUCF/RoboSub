@@ -44,7 +44,7 @@ class through(smach.State):
 		self.thruster_pub.publish(self.autonomyMsg)
 
 		if self.preempt_requested():
-			self.service_preempted()
+			self.service_preempt()
 			return 'preempted'
 
 		return 'success'

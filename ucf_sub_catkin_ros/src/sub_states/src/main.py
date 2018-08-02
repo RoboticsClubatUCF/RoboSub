@@ -82,8 +82,13 @@ class SafetyState(smach.State):
         smach.State.__init__(self, outcomes=['ABORT', 'RECOVERED', 'PREEMPTED', 'ESTOP'])
         self.critError = False
         self.estop = False
+        self.button = False
         rospy.Subscriber("/leak", Bool, self.leakCb)
+        rospy.Subscriber("/start", Bool, self.buttonCb)
         rospy.Subscriber("/diagnostics", DiagnosticArray, self.depthStatus)
+
+    def buttonCb(self, msg):
+        self.button=True
 
     def leakCb(self, msg):
         if msg.data:
@@ -106,7 +111,8 @@ class SafetyState(smach.State):
             self.critError = True
 
     def execute(self, userdata):
-        while not self.critError and not self.estop and not self.preempt_requested():
+        self.button=False
+        while not self.critError and not self.estop and not self.preempt_requested() and not self.button:
             time.sleep(0.1)
 
         if self.preempt_requested():
@@ -115,6 +121,8 @@ class SafetyState(smach.State):
         elif self.estop:
             self.estop = False
             return 'ESTOP'
+        elif self.button:
+            return 'RECOVERED'
         else:
             self.critError = False
             return 'ABORT'
@@ -122,7 +130,7 @@ class SafetyState(smach.State):
 def safetyWrap(task):
     def safety_outcome(outcome_map):
         rospy.logerr(outcome_map)
-        if outcome_map['SAFETY'] != 'PREEMPTED':
+        if outcome_map['SAFETY'] not in ['PREEMPTED'] and not (outcome_map['TASK'] in ['GO', 'DONE'] and outcome_map['SAFETY'] == 'RECOVERED'):
             return outcome_map['SAFETY']
         elif outcome_map['TASK'] is not None:
             return outcome_map['TASK']
@@ -166,11 +174,11 @@ def main():
         task_path2 = safetyWrap(path.makeTask())
         task_slots = safetyWrap(slots.makeTask())
 
-        smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'GATE', 'ESTOP': 'START'})
-        smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1', 'ESTOP': 'START'})
-        smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE', 'ESTOP': 'START'})
-        smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2', 'ESTOP': 'START'})
-        smach.StateMachine.add('SLOTS', task_slots, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'SLOTS', 'ESTOP': 'START'})
+        smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'START', 'ESTOP': 'START'})
+        #smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1', 'ESTOP': 'START'})
+        #smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE', 'ESTOP': 'START'})
+        #smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2', 'ESTOP': 'START'})
+        #smach.StateMachine.add('SLOTS', task_slots, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'SLOTS', 'ESTOP': 'START'})
 
         smach.StateMachine.add('STOP', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE', 'ABORT':'ABORT', 'RECOVERED':'STOP', 'ESTOP':'START'})
         smach.StateMachine.add('ABORT', StopState(), transitions={'RESTART':'START', 'DONE':'DONE', 'PREEMPTED':'DONE'}, remapping={'depth':'abort_depth'})
