@@ -1,0 +1,6 @@
+<!-- Launch file for sensors using GPIO (MUST RUN AS ROOT) -->
+<launch>
+  <node name="leak_sensor" pkg="sub_sensors" type="LeakSensor.py"/>
+  <node name="torpedoes" pkg="sub_sensors" type="Torpedo.py"/>
+  <node name="start_button" pkg="sub_sensors" type="StartButton.py"/>
+</launch>
