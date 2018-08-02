@@ -130,7 +130,7 @@ class SafetyState(smach.State):
 def safetyWrap(task):
     def safety_outcome(outcome_map):
         rospy.logerr(outcome_map)
-        if outcome_map['SAFETY'] not in ['PREEMPTED'] and not (outcome_map['TASK'] in ['GO', 'DONE'] and outcome_map['SAFETY'] == 'RECOVERED'):
+        if outcome_map['SAFETY'] not in ['PREEMPTED', 'RECOVERED'] and outcome_map['TASK'] not in ['GO', 'DONE']:
             return outcome_map['SAFETY']
         elif outcome_map['TASK'] is not None:
             return outcome_map['TASK']
@@ -174,7 +174,7 @@ def main():
         task_path2 = safetyWrap(path.makeTask())
         task_slots = safetyWrap(slots.makeTask())
 
-        smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'START', 'ESTOP': 'START'})
+        smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'STOP', 'ESTOP': 'START'})
         #smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1', 'ESTOP': 'START'})
         #smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE', 'ESTOP': 'START'})
         #smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2', 'ESTOP': 'START'})
