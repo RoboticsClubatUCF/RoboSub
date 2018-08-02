@@ -6,7 +6,7 @@ from std_msgs.msg import Bool
 from sub_trajectory.msg import StabilityMode
 import smach, smach_ros
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
-
+from geometry_msgs.msg import WrenchStamped
 import gate
 import path
 import dice
@@ -46,13 +46,19 @@ class StopState(smach.State):
 
 	def execute(self, userdata):
 		self.waiting = True
-		self.stabilityMsg.target.z=userdata.depth
+		self.stabilityMsg.target.z=0.5
 		self.stabilityMsg.mode = StabilityMode.position
 		self.stabilityPub.publish(self.stabilityMsg)
 
-		while self.waiting and not self.preempt_requested():
-			time.sleep(0.1)
+		self.thruster_pub = rospy.Publisher('/autonomyWrench', WrenchStamped, queue_size=1)
+                self.autonomyMsg = WrenchStamped()
 
+                self.thruster_pub.publish(self.autonomyMsg)
+
+
+		while self.waiting and not self.preempt_requested():
+			time.sleep(0.02)
+			self.thruster_pub.publish(self.autonomyMsg)
 		if self.preempt_requested():
 			self.service_preempt()
 			return 'PREEMPTED'
