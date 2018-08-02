@@ -173,11 +173,11 @@ class VectorController:
         
         
     def run(self): #Start spinning ros stuff.
+	self.thrustPublisher = rospy.Publisher("/thrusters/cmd_vel", ThrusterCmd, queue_size=10)
+        self.actualWrenchPub = rospy.Publisher("actualThrustWrench", WrenchStamped, queue_size=10)
+
         rospy.Subscriber("desiredThrustWrench", WrenchStamped, self.commandCb)
         rospy.Subscriber("thrusterStatus", ThrusterStatus, self.thrusterStatusCb)
-        
-        self.thrustPublisher = rospy.Publisher("/thrusters/cmd_vel", ThrusterCmd, queue_size=10)
-        self.actualWrenchPub = rospy.Publisher("actualThrustWrench", WrenchStamped, queue_size=10)
 
         rate = rospy.Rate(5)
         while not rospy.is_shutdown():
