@@ -98,6 +98,7 @@ class VisionServer:
         self.targetType = goal.objectType
         self.setThresholds(*self.thresholds[self.targetType])
         self.feedback = TrackObjectFeedback()
+        self.found = False
 
         self.running = True
         self.ok = True
@@ -132,7 +133,6 @@ class VisionServer:
                 rospy.logwarn_throttle(1, "No down camera model")
                 continue #We need the down camera model for stuff
             
-            self.feedback = TrackObjectFeedback()
             if self.targetType == TrackObjectGoal.startGate:
                 if self.newRight:
                     self.feedback = self.gateFinder.process(leftImageRect, rightImageRect, self.disparityImage, self.leftModel, self.stereoModel, self.upper, self.lower)
