@@ -14,7 +14,7 @@ import slots
 
 class StartState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['GO'])
+		smach.State.__init__(self, outcomes=['GO', 'PREEMPTED'])
 		self.waiting = True
 		rospy.Subscriber("/start", Bool, self.go)
 
@@ -22,14 +22,19 @@ class StartState(smach.State):
 		self.waiting = False
 
 	def execute(self, userdata):
+		self.waiting = True
 		while self.waiting and not self.preempt_requested():
 			time.sleep(0.1)
+
+		if self.preempt_requested():
+			self.service_preempt()
+			return 'PREEMPTED'
 
 		return 'GO'
 
 class StopState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['DONE', 'RESTART'],
+		smach.State.__init__(self, outcomes=['DONE', 'RESTART', 'PREEMPTED'],
 							input_keys=['depth'])
 		self.stabilityPub = rospy.Publisher("/thrusters/depthMode", StabilityMode, queue_size=1)
 		self.stabilityMsg = StabilityMode()
@@ -40,12 +45,17 @@ class StopState(smach.State):
 		self.waiting=False
 
 	def execute(self, userdata):
+		self.waiting = True
 		self.stabilityMsg.target.z=userdata.depth
 		self.stabilityMsg.mode = StabilityMode.position
 		self.stabilityPub.publish(self.stabilityMsg)
 
 		while self.waiting and not self.preempt_requested():
 			time.sleep(0.1)
+
+		if self.preempt_requested():
+			self.service_preempt()
+			return 'PREEMPTED'
 
 		return 'RESTART'
 
@@ -62,6 +72,7 @@ class SafetyState(smach.State):
 			self.critError = True
 
 	def depthStatus(self, msg):
+		self.estop = False
 		thrusterErrors = 0
 		for status in msg.status:
 			if status.name == 'DepthDisconnect':
@@ -71,7 +82,9 @@ class SafetyState(smach.State):
 				thrusterErrors += 1
 		if thrusterErrors > 7:
 			self.estop = True
+			rospy.logwarn("ESTOP PROBABLY ON")
 		elif thrusterErrors > 1:
+			rospy.logwarn("THRUSTERS PROBABLY BUSTED")
 			self.critError = True
 
 	def execute(self, userdata):
@@ -79,27 +92,36 @@ class SafetyState(smach.State):
 			time.sleep(0.1)
 
 		if self.preempt_requested():
+			self.service_preempt()
 			return 'PREEMPTED'
 		elif self.estop:
+			self.estop = False
 			return 'ESTOP'
 		else:
+			self.critError = False
 			return 'ABORT'
 
 def safetyWrap(task):
 	def safety_outcome(outcome_map):
+		rospy.logerr(outcome_map)
 		if outcome_map['SAFETY'] != 'PREEMPTED':
 			return outcome_map['SAFETY']
+		elif outcome_map['TASK'] is not None:
+			return outcome_map['TASK']
 		else:
-			return outcome_map["TASK"]
+			return 'ABORT'
 
 	def safety_term(outcome_map):
 		return True
 
 	safetyState = SafetyState()
-	sm_wrapper = smach.Concurrence(list(task.get_registered_outcomes()) + ['ABORT', 'RECOVERED','ESTOP'],
-									default_outcome='ABORT',
-									outcome_cb=safety_outcome,
-									child_termination_cb=safety_term)
+	outcomes = list(task.get_registered_outcomes()) + list(safetyState.get_registered_outcomes())
+	outcomes[:] = [x for x in outcomes if x != 'PREEMPTED']
+
+	sm_wrapper = smach.Concurrence(outcomes,
+					default_outcome='ABORT',
+					outcome_cb=safety_outcome,
+					child_termination_cb=safety_term)
 
 	with sm_wrapper:
 		smach.Concurrence.add("SAFETY", SafetyState())
@@ -126,14 +148,14 @@ def main():
 		task_path2 = safetyWrap(path.makeTask())
 		task_slots = safetyWrap(slots.makeTask())
 
-		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'PATH1', 'ABORT':'ABORT', 'RECOVERED':'GATE', 'ESTOP': 'START'})
+		smach.StateMachine.add('GATE', task_gate, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'GATE', 'ESTOP': 'START'})
 		smach.StateMachine.add('PATH1', task_path1, transitions={'DONE':'DICE', 'ABORT':'ABORT', 'RECOVERED':'PATH1', 'ESTOP': 'START'})
 		smach.StateMachine.add('DICE', task_dice, transitions={'DONE':'PATH2', 'ABORT':'ABORT', 'RECOVERED':'DICE', 'ESTOP': 'START'})
 		smach.StateMachine.add('PATH2', task_path2, transitions={'DONE':'SLOTS', 'ABORT':'ABORT', 'RECOVERED':'PATH2', 'ESTOP': 'START'})
 		smach.StateMachine.add('SLOTS', task_slots, transitions={'DONE':'STOP', 'ABORT':'ABORT', 'RECOVERED':'SLOTS', 'ESTOP': 'START'})
 
 		smach.StateMachine.add('STOP', safetyWrap(StopState()), transitions={'RESTART':'START', 'DONE':'DONE', 'ABORT':'ABORT', 'RECOVERED':'STOP', 'ESTOP':'START'}, remapping={'depth':'stop_depth'})
-		smach.StateMachine.add('ABORT', StopState(), transitions={'RESTART':'START', 'DONE':'DONE'}, remapping={'depth':'abort_depth'})
+		smach.StateMachine.add('ABORT', StopState(), transitions={'RESTART':'START', 'DONE':'DONE', 'PREEMPTED':'DONE'}, remapping={'depth':'abort_depth'})
 
 	sis = smach_ros.IntrospectionServer("sm_server", mission_sm, "/MISSION")
 	sis.start()
