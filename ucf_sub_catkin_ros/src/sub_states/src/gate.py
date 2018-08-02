@@ -12,12 +12,13 @@ from sub_trajectory.msg import StabilityMode
 class through(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['preempted', 'success', 'failure'])
+		self.stabilityPub = rospy.Publisher("/thrusters/depthMode", StabilityMode, queue_size=1)
+		self.orientationPub = rospy.Publisher("/thrusters/orientationMode", StabilityMode, queue_size=1)
+		self.thruster_pub = rospy.Publisher('/autonomyWrench', WrenchStamped, queue_size=1)
 
 	def execute(self, userdata):
-		self.stabilityPub = rospy.Publisher("/thrusters/depthMode", StabilityMode, queue_size=1)
-		self.stabilityMsg = StabilityMode()
 
-		self.orientationPub = rospy.Publisher("/thrusters/orientationMode", StabilityMode, queue_size=1)
+		self.stabilityMsg = StabilityMode()
 		self.orientationMsg = StabilityMode()
 
 		self.stabilityMsg.target.z=1
@@ -29,7 +30,6 @@ class through(smach.State):
 		self.orientationMsg.yawEnabled = True
 		self.orientationPub.publish(self.stabilityMsg)
 		
-		self.thruster_pub = rospy.Publisher('/autonomyWrench', WrenchStamped, queue_size=1)
 		self.autonomyMsg = WrenchStamped()
 
 		self.autonomyMsg.wrench.force.x = 3
