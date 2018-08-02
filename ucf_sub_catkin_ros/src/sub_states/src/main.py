@@ -130,7 +130,7 @@ class SafetyState(smach.State):
 def safetyWrap(task):
     def safety_outcome(outcome_map):
         rospy.logerr(outcome_map)
-        if outcome_map['SAFETY'] not in ['PREEMPTED', 'RECOVERED'] and outcome_map['TASK'] not in ['GO', 'DONE']:
+        if outcome_map['SAFETY'] not in ['PREEMPTED']:
             return outcome_map['SAFETY']
         elif outcome_map['TASK'] is not None:
             return outcome_map['TASK']
