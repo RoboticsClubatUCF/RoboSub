@@ -60,9 +60,9 @@ class GateFinder:
 
     def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, upper, lower):
         assert(imageLeftRect is not None)
-	feedback = TrackObjectFeedback()
-	feedback.found = False
-	imageHLS = cv2.cvtColor(imageLeftRect, cv2.COLOR_BGR2HLS)
+        feedback = TrackObjectFeedback()
+        feedback.found = False
+        imageHLS = cv2.cvtColor(imageLeftRect, cv2.COLOR_BGR2HLS)
         lower = np.array([0,70,50], dtype = 'uint8')
         upper = np.array([200,255,255], dtype='uint8')
         mask=cv2.inRange(imageHLS, lower,upper) #HLS thresholds
@@ -73,8 +73,8 @@ class GateFinder:
         contours = cnts[1]
 
         if len(contours) == 0:
-		print("No contours")
-        	return feedback
+            print("No contours")
+            return feedback
 
         rects = []
         for contour in contours: #adapted from https://github.com/opencv/opencv/blob/master/samples/python/squares.py
@@ -104,22 +104,17 @@ class GateFinder:
             gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
             self.feedback_msg.center = gateCenter
             self.feedback_msg.size = imageRightRect.shape
-	    self.feedback_pub.publish(self.feedback_msg)
+        self.feedback_pub.publish(self.feedback_msg)
 
-	    #feedback.center = gateCenter
+        #feedback.center = gateCenter
             #feedback.size = imageRightRect.shape
 
-            if gateCenter[0] - rect1[0][0] > 0:
-                feedback.width = (rect2[0][0]+(rect2[1][0]/2)) - (rect1[0][0] - (rect1[1][0]/2))
-            else:
-                feedback.width = (rect1[0][0] -(rect1[1][0]/2)) - (rect2[0][0]+(rect2[1][0]/2))
-
-            feedback.height = rect1[1][1]
-            feedback.found = True
-            return feedback
-
-
+        if gateCenter[0] - rect1[0][0] > 0:
+            feedback.width = (rect2[0][0]+(rect2[1][0]/2)) - (rect1[0][0] - (rect1[1][0]/2))
         else:
-            return feedback
+            feedback.width = (rect1[0][0] -(rect1[1][0]/2)) - (rect2[0][0]+(rect2[1][0]/2))
+        feedback.height = rect1[1][1]
+        feedback.found = True
+        return feedback
 
 
