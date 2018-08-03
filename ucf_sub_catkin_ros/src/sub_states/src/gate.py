@@ -22,13 +22,13 @@ class through(smach.State):
         self.autonomyMsg = WrenchStamped()
 
         self.coeff = 1
-	self.t0 = 0
+        self.t0 = 0
         self.vision_feedback = rospy.Subscriber('/gate_feedback', feedback, self.feedbackCb)
 
     def feedbackCb(self, msg):
         self.autonomyMsg.wrench.force.y = (msg.center[0]-msg.size[0]/2) * self.coeff / msg.size[0]
         rospy.loginfo_throttle(5, self.autonomyMsg.wrench.force.y)
-	self.t0 = time.time()
+        self.t0 = time.time()
         
     def execute(self, userdata):
 
