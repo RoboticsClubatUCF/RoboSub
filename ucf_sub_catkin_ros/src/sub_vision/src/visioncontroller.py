@@ -20,18 +20,18 @@ class VisionController:
 
 	def execute(self, msg):
 		if msg.center[0]-msg.size[0]/2 < 0:
-			self.thruster_command.y = -1 * self.coeff
-			rospy.loginfo(self.thruster_command.y)
+			self.thruster_command.wrench.force.y = -1 * self.coeff
+			rospy.loginfo(self.thruster_command.wrench.force.y)
 			self.thruster_pub.publish(self.thruster_command)
 
 		elif msg.center[0]-msg.size[0]/2 > 0:
-			self.thruster_command.y = 1 * self.coeff
-			rospy.loginfo(self.thruster_command.y)
+			self.thruster_command.wrench.force.y = 1 * self.coeff
+			rospy.loginfo(self.thruster_command.wrench.force.y)
 			self.thruster_pub.publish(self.thruster_command)
 
 		else:
-			self.thruster_command.y = 0
-			rospy.loginfo(self.thruster_command.y)
+			self.thruster_command.wrench.force.y = 0
+			rospy.loginfo(self.thruster_command.wrench.force.y)
 			self.thruster_pub.publish(self.thruster_command)
 
 if __name__== "__main__":
