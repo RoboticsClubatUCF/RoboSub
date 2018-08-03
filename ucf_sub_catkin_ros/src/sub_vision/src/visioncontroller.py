@@ -2,14 +2,14 @@ import rospy
 from geometry_msgs.msg import WrenchStamped
 from dynamic_reconfigure.server import Server
 from sub_vision.cfg import ServoingConfig
-from sub_vision.msg import TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult
+from sub_vision.msg import TrackObjectAction, TrackObjectGoal, TrackObjectFeedback, TrackObjectResult, feedback
 
 class VisionController:
 
 	def __init__(self):
 		self.thruster_pub = rospy.Publisher('/autonomyWrench', WrenchStamped, queue_size=1)
 		self.thruster_command = WrenchStamped()
-		self.vision_feedback = rospy.Subscriber('/track_object/feedback', TrackObjectFeedback, self.execute)
+		self.vision_feedback = rospy.Subscriber('/gate_feedback', feedback, self.execute)
 		self.reconfigureServer = Server(ServoingConfig, self.reconfigureCallback)
 		self.coeff = 1
 
