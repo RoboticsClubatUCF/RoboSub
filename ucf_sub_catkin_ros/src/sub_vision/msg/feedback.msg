@@ -1,2 +1,2 @@
 float64[] center
-int32 size
+int32[] size

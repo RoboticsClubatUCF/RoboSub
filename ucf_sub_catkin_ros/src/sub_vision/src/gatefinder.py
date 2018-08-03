@@ -104,8 +104,10 @@ class GateFinder:
             gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
             self.feedback_msg.center = gateCenter
             self.feedback_msg.size = imageRightRect.shape
-            feedback.center = gateCenter
-            feedback.size = imageRightRect.shape
+	    self.feedback_pub.publish(self.feedback_msg)
+
+	    #feedback.center = gateCenter
+            #feedback.size = imageRightRect.shape
 
             if gateCenter[0] - rect1[0][0] > 0:
                 feedback.width = (rect2[0][0]+(rect2[1][0]/2)) - (rect1[0][0] - (rect1[1][0]/2))
