@@ -10,6 +10,7 @@ import vision_utils
 
 from sub_vision.msg import TrackObjectFeedback
 from sensor_msgs.msg import Image
+from sub_vision.msg import feedback
 
 def angle_cos(p0, p1, p2):
     d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
@@ -32,6 +33,8 @@ class GateFinder:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_pub = rospy.Publisher("/thresh_image", Image, queue_size=10)
+        self.feedback_pub = rospy.Publisher("/gate_feedback", feedback, queue_size=10)
+        self.feedback_msg = feedback()
         
     def normalsFromAllCorners(self, corners, disparities):
         valid = []
@@ -56,17 +59,21 @@ class GateFinder:
         return normals
 
     def process(self, imageLeftRect, imageRightRect, imageDisparityRect, cameraModel, stereoCameraModel, upper, lower):
-        assert(imageRightRect is not None)
+        assert(imageLeftRect is not None)
 	feedback = TrackObjectFeedback()
 	feedback.found = False
-	imageHLS = cv2.cvtColor(imageRightRect, cv2.COLOR_BGR2HLS)
-        mask=cv2.inRange(imageHLS, np.array(lower,dtype='uint8'),np.array(upper,dtype='uint8')) #HLS thresholds
+	imageHLS = cv2.cvtColor(imageLeftRect, cv2.COLOR_BGR2HLS)
+        lower = np.array([0,70,50], dtype = 'uint8')
+        upper = np.array([200,255,255], dtype='uint8')
+        mask=cv2.inRange(imageHLS, lower,upper) #HLS thresholds
+        output = cv2.bitwise_and(imageLeftRect, imageLeftRect, mask=mask)
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(imageLeftRect, "bgr8"))
         #mask=cv2.inRange(imageHSV, np.array([20,30,80],dtype='uint8'),np.array([40,52,120],dtype='uint8'))
         cnts = cv2.findContours(mask.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)    
         contours = cnts[1]
 
         if len(contours) == 0:
-		print("here")
+		print("No contours")
         	return feedback
 
         rects = []
@@ -95,7 +102,10 @@ class GateFinder:
                 rect2[2] = (rect2[2] + 90) * 180/3.141
 
             gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
+            self.feedback_msg.center = gateCenter
+            self.feedback_msg.size = imageRightRect.shape
             feedback.center = gateCenter
+            feedback.size = imageRightRect.shape
 
             if gateCenter[0] - rect1[0][0] > 0:
                 feedback.width = (rect2[0][0]+(rect2[1][0]/2)) - (rect1[0][0] - (rect1[1][0]/2))
