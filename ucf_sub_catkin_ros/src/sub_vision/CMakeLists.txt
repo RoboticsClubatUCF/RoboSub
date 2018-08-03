@@ -8,11 +8,11 @@ find_package(catkin REQUIRED genmsg actionlib_msgs actionlib geometry_msgs dynam
 # find_package(Boost REQUIRED COMPONENTS system)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+  add_message_files(
+    FILES
+    feedback.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
