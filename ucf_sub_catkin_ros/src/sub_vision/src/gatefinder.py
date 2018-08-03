@@ -67,7 +67,7 @@ class GateFinder:
         upper = np.array([200,255,255], dtype='uint8')
         mask=cv2.inRange(imageHLS, lower,upper) #HLS thresholds
         output = cv2.bitwise_and(imageLeftRect, imageLeftRect, mask=mask)
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(imageLeftRect, "bgr8"))
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(output, "bgr8"))
         #mask=cv2.inRange(imageHSV, np.array([20,30,80],dtype='uint8'),np.array([40,52,120],dtype='uint8'))
         cnts = cv2.findContours(mask.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)    
         contours = cnts[1]
@@ -104,6 +104,7 @@ class GateFinder:
             gateCenter = (int((rect1[0][0] + rect2[0][0])/2), int((rect1[0][1] + rect2[0][1])/2))
             self.feedback_msg.center = gateCenter
             self.feedback_msg.size = imageRightRect.shape
+        
         self.feedback_pub.publish(self.feedback_msg)
 
         #feedback.center = gateCenter
