@@ -160,10 +160,10 @@ class VectorController:
         needToUpdate = False #Flag set true if something happened that requires a control matrix update
         if not self.thrusterStatuses.has_key(msg.thrusterChannel): #If we've never had a message from this thruster before, update the control matrix
             needToUpdate = True
-        elif not self.thrusterStatuses[msg.thrusterChannel].thrusterOk == msg.thrusterOk: #If this thruster's status has changed update the control matrix
+        elif not self.thrusterStatuses[msg.thrusterChannel] == msg.thrusterOk: #If this thruster's status has changed update the control matrix
             needToUpdate = True
             
-        self.thrusterStatuses[msg.thrusterChannel] = msg #Store the updated thruster status message
+        self.thrusterStatuses[msg.thrusterChannel] = msg.thrusterOk #Store the updated thruster status message
         
         if needToUpdate:
             rospy.logdebug("update")
