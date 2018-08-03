@@ -22,12 +22,13 @@ class through(smach.State):
         self.autonomyMsg = WrenchStamped()
 
         self.coeff = 1
-
+	self.t0 = 0
         self.vision_feedback = rospy.Subscriber('/gate_feedback', feedback, self.feedbackCb)
 
     def feedbackCb(self, msg):
-        self.autonomyMsg.wrench.force.y = msg.center[0]-msg.size[0]/2 * self.coeff
+        self.autonomyMsg.wrench.force.y = (msg.center[0]-msg.size[0]/2) * self.coeff / msg.size[0]
         rospy.loginfo_throttle(5, self.autonomyMsg.wrench.force.y)
+	self.t0 = time.time()
         
     def execute(self, userdata):
 
@@ -51,9 +52,9 @@ class through(smach.State):
         self.autonomyMsg.wrench.force.x = 2
         self.thruster_pub.publish(self.autonomyMsg)
 
-        t0 = time.time()
+        self.t0 = time.time()
 
-        while ((time.time()-t0) < 60) and not self.preempt_requested():
+        while ((time.time()-self.t0) < 60) and not self.preempt_requested():
             time.sleep(0.01)
             self.autonomyMsg.header.stamp = rospy.Time.now()
             self.thruster_pub.publish(self.autonomyMsg)
