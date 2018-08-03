@@ -131,7 +131,7 @@ class VisionServer:
                 self.downModel.rectifyImage(self.downImage, downImageRect)
             else:
                 rospy.logwarn_throttle(1, "No down camera model")
-                continue #We need the down camera model for stuff
+                #continue #We need the down camera model for stuff
             
             if self.targetType == TrackObjectGoal.startGate:
                 if self.newRight:

@@ -21,21 +21,14 @@ class through(smach.State):
 
         self.autonomyMsg = WrenchStamped()
 
+        self.coeff = 1
+
         self.vision_feedback = rospy.Subscriber('/gate_feedback', feedback, self.feedbackCb)
 
     def feedbackCb(self, msg):
-        if msg.center[0]-msg.size[0]/2 < 0:
-            self.autonomyMsg.wrench.force.y = -1 * self.coeff
-            rospy.loginfo_throttle(5, self.autonomyMsg.wrench.force.y)
-
-        elif msg.center[0]-msg.size[0]/2 > 0:
-            self.autonomyMsg.wrench.force.y = 1 * self.coeff
-            rospy.loginfo_throttle(5, self.autonomyMsg.wrench.force.y)
-
-        else:
-            self.autonomyMsg.wrench.force.y = 0
-            rospy.loginfo_throttle(5, self.autonomyMsg.wrench.force.y)
-
+        self.autonomyMsg.wrench.force.y = msg.center[0]-msg.size[0]/2 * self.coeff
+        rospy.loginfo_throttle(5, self.autonomyMsg.wrench.force.y)
+        
     def execute(self, userdata):
 
         self.stabilityMsg = StabilityMode()
