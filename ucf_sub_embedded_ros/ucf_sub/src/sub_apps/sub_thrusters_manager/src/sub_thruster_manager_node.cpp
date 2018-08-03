@@ -22,7 +22,7 @@ class ThrusterManager {
     ros::NodeHandle nh_;
     ros::Subscriber command_subscriber;
     ros::Publisher diagnostics_output;
-    ros:Subscriber status_output;
+    ros::Publisher status_output;
     self_test::TestRunner self_test_;
     std::string configPath;
 
@@ -45,7 +45,7 @@ public:
         command_subscriber = nh_.subscribe("/thrusters/cmd_vel", 1000, &ThrusterManager::thrusterCb, this);
 
         diagnostics_output = nh_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 1000);
-        status_output = nh_.advertise<ThrusterStatus>("/thrusterStatus", 1000)
+        status_output = nh_.advertise<sub_trajectory::ThrusterStatus>("/thrusterStatus", 1000);
 
         self_test_.add("Test connections", this, &ThrusterManager::testThrusterConnections);
 
@@ -118,7 +118,7 @@ public:
     {
         ros::Rate rate(updateRate);
         int loopCount;
-        ThrusterStatus thrusterStatusMsg = ThrusterStatus();
+        sub_trajectory::ThrusterStatus thrusterStatusMsg = sub_trajectory::ThrusterStatus();
         while(ros::ok()) {
             diagnostic_msgs::DiagnosticArray diag;
             ROS_DEBUG("Updating thrusters");
@@ -153,7 +153,7 @@ public:
                 status.hardware_id = "Thrusters";
                 status.level = status.ERROR;
                 diag.status.push_back(status);
-                ROS_ERROR("Thrusters command has wrong number of values");
+                ROS_ERROR_THROTTLE(10,"Thrusters command has wrong number of values");
             }
             else
             {
